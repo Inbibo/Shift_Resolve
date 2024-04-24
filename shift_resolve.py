@@ -85,6 +85,30 @@ class DVR_Base(SOperator):
             raise EnvironmentError("This operator can be executed only inside Davinci Resolve with "
                                    "Python installed and the API configured.")
 
+    def getDrvIdx(self, value, objType, lenght):
+        """Converts the given value to a integer index and checks that is a valid index for the obj.
+        If the index is not valid, the functions raise and error or log a warning.
+
+        @param value str: The string that should contain an integer to be converted.
+        @param objType str: The name of the object where the index will be used.
+        @param lenght: The maximum index value that can be accepted in the object.
+
+        @return int: The index verified and ready to use.
+
+        @raises ValueError: Raise an error if the value is not a valid index.
+
+        """
+        try:
+            idx = int(value)
+        except Exception as e:
+            raise ValueError("The key value must be an integer to use this method.")
+        if idx > lenght or idx < 0:
+            raise ValueError("{0} index out of range. "
+                             "There are {0} items available.".format(objType, idx))
+        elif idx == 0:
+            logger.warning("The resolve lists for {0} starts at index 1.".format(objType))
+        return idx
+
 
 class DVR_MetadataSet(DVR_Base):
     """Operator to edit the metadata of a given clip.
@@ -358,15 +382,7 @@ class DVR_TimelineGet(DVR_Base):
                 logger.warning("Timeline with name '{0}' not found.".format(timeKey))
         elif getMethod == "ByIndex":
             # Index sanity checks
-            try:
-                timeIdx = int(timeKey)
-            except Exception as e:
-                raise ValueError("The key value must be an integer for the 'ByIndex' Get Method.")
-            if timeIdx > project.GetTimelineCount() or timeIdx < 0:
-                raise ValueError("Timeline index out of range. "
-                                 "There are {0} timelines available.".format(project.GetTimelineCount()))
-            elif timeIdx == 0:
-                logger.warning("The resolve lists for timelines starts at index 1.")
+            timeIdx = self.getDrvIdx(timeKey, "Timeline", project.GetTimelineCount())
             # Get the timeline for the given index
             try:
                 timeline = project.GetTimelineByIndex(timeIdx)
@@ -485,6 +501,111 @@ class DVR_TimelineNameSet(DVR_Base):
         super(self.__class__, self).execute()
 
 
+class DVR_TimelineItemsGet(DVR_Base):
+    """Operator to get a list of timelineItems from a given timeline
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+        i_timeline = SPlug(
+            code="timeline",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_trackType = SPlug(
+            code="trackType",
+            value="video",
+            type=SType.kEnum,
+            options=["video", "audio", "subtitle"],
+            direction=SDirection.kIn,
+            parent=self)
+        i_getMethod = SPlug(
+            code="getMethod",
+            value="All",
+            type=SType.kEnum,
+            options=["All", "ByTrackIdx", "ByTrackName"],
+            direction=SDirection.kIn,
+            parent=self)
+        i_key = SPlug(
+            code="key",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        o_items = SPlug(
+            code="items",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_timeline)
+        self.addPlug(i_trackType)
+        self.addPlug(i_getMethod)
+        self.addPlug(i_key)
+        self.addPlug(o_items)
+
+    def _getItemsFromTrack(self, timeline, trackType, trackIdx):
+        """Gets the timeline items list for the given track type and index from the given timeline.
+
+        @param timeline DaVinciResolve.Timeline: The timeline object where the clips will be got.
+        @param trackType str: The track type to read. Must be video, audio or subtitle.
+        @param trackIdx int: The index of the track to read the clips from.
+
+        @return list: The list of timeline items.
+
+        """
+        try:
+            items = timeline.GetItemListInTrack(trackType, trackIdx)
+        except Exception as e:
+            logger.error(e)
+            raise RuntimeError("The clips could not be read from the timeline.")
+        return items
+
+
+    def execute(self, force=False):
+        """Returns a list of timeline items from the given timeline.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        timeline = self.getPlug("timeline", SDirection.kIn).value
+        trackType = self.getPlug("trackType", SDirection.kIn).value
+        getMethod = self.getPlug("getMethod", SDirection.kIn).value
+        trackKey = self.getPlug("key", SDirection.kIn).value
+        # Check the input values
+        if timeline is None:
+            raise ValueError("A Timeline object is required to get the items.")
+        # Get the items with the selected method
+        if getMethod == "All":
+            items = []
+            for trackIdx in range(1, timeline.GetTrackCount(trackType)):
+                if timeline.GetTrackName(trackType, trackIdx) == trackKey:
+                    items.extend(self._getItemsFromTrack(timeline, trackType, trackIdx))
+            if not items:
+                logger.warning("No Timeline Items found.")
+        elif getMethod == "ByTrackIdx":
+            trackIdx = self.getDrvIdx(trackKey, "Timeline", timeline.GetTrackCount(trackType))
+            items = self._getItemsFromTrack(timeline, trackType, trackIdx)
+        elif getMethod == "ByTrackName":
+            items = []
+            for trackIdx in range(1, timeline.GetTrackCount(trackType)):
+                if timeline.GetTrackName(trackType, trackIdx) == trackKey:
+                    items = self._getItemsFromTrack(timeline, trackType, trackIdx)
+                    break
+            if not items:
+                logger.warning("Track name not found or the track is empty.")
+        else:
+            raise ValueError("Get method '{0}' not reconized.".format(getMethod))
+
+        self.getPlug("items", SDirection.kOut).setValue(items)
+        super(self.__class__, self).execute()
+
+
 catalog = {
     "Description": "A catalog to use Davinci Resolve in Shift. "
                    "You can use the operators from this catalog to read, modify and export media, clips and "
@@ -498,6 +619,7 @@ catalog = {
         [DVR_TimelineExport, []],
         [DVR_TimelineGet, []],
         [DVR_TimelineNameGet, []],
-        [DVR_TimelineNameSet, []]
+        [DVR_TimelineNameSet, []],
+        [DVR_TimelineItemsGet, []]
     ]
 }
