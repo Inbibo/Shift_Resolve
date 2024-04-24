@@ -502,7 +502,10 @@ class DVR_TimelineNameSet(DVR_Base):
 
 
 class DVR_TimelineItemsGet(DVR_Base):
-    """Operator to get a list of timelineItems from a given timeline
+    """Operator to get a list of timelineItems from a given timeline.
+    You can use different methods: 'All' to get the clips from all the tracks of the given trackType,
+    'ByTrackIdx' to get only the items from the give track index or 'ByTrackName' to get the clips from the
+    given track Name.
     Works in Davinci Resolve.
 
     """
@@ -606,6 +609,99 @@ class DVR_TimelineItemsGet(DVR_Base):
         super(self.__class__, self).execute()
 
 
+class DVR_TimelineItemGet(DVR_Base):
+    """Operator to get a timeline item object from a given list of items.
+    You can search for a specific clip with a specific name. With the nameSource property
+    you can choose to check the name from the timeline item or the name from the media pool item.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+        i_items = SPlug(
+            code="items",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_nameSource = SPlug(
+            code="nameSource",
+            value="TimelineItem",
+            type=SType.kEnum,
+            options=["TimelineItem", "MediaPoolClip"],
+            direction=SDirection.kIn,
+            parent=self)
+        i_name = SPlug(
+            code="name",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        o_item = SPlug(
+            code="item",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+        o_mediaPoolItem = SPlug(
+            code="mediaPoolItem",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_items)
+        self.addPlug(i_nameSource)
+        self.addPlug(i_name)
+        self.addPlug(o_item)
+        self.addPlug(o_mediaPoolItem)
+
+
+    def execute(self, force=False):
+        """Returns a list of timeline items from the given timeline.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        items = self.getPlug("items", SDirection.kIn).value
+        nameSource = self.getPlug("nameSource", SDirection.kIn).value
+        inName = self.getPlug("name", SDirection.kIn).value
+
+        # Check the input values
+        if not items:
+            raise ValueError("No items provided. A list of timeline items is required to get one item.")
+        resultItem = None
+        for item in items:
+            if nameSource == "TimelineItem":
+                itemName = item.GetName()
+            elif nameSource == "MediaPoolClip":
+                mediaPoolItemObj = item.GetMediaPoolItem()
+                if not mediaPoolItemObj:
+                    continue
+                itemName = mediaPoolItemObj.GetClipProperty("Clip Name")
+            else:
+                raise ValueError("Name source object not recognized.")
+            if itemName != inName:
+                continue
+            resultItem = item
+            break
+        
+        if resultItem:
+            try:
+                mediaPoolItem = resultItem.GetMediaPoolItem()
+            except Exception as e:
+                logger.warning(e)
+                logger.warning("The MediaPool Item could not be get from the timeline item. Returning None.")
+                mediaPoolItem = None
+        else:
+            mediaPoolItem = None
+        self.getPlug("item", SDirection.kOut).setValue(resultItem)
+        self.getPlug("mediaPoolItem", SDirection.kOut).setValue(mediaPoolItem)
+        super(self.__class__, self).execute()
+
+
 catalog = {
     "Description": "A catalog to use Davinci Resolve in Shift. "
                    "You can use the operators from this catalog to read, modify and export media, clips and "
@@ -620,6 +716,7 @@ catalog = {
         [DVR_TimelineGet, []],
         [DVR_TimelineNameGet, []],
         [DVR_TimelineNameSet, []],
-        [DVR_TimelineItemsGet, []]
+        [DVR_TimelineItemsGet, []],
+        [DVR_TimelineItemGet, []]
     ]
 }
