@@ -86,6 +86,56 @@ class DVR_Base(SOperator):
                                    "Python installed and the API configured.")
 
 
+class DVR_MetadataSet(DVR_Base):
+    """Operator to edit the metadata of a given clip.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_clip = SPlug(
+            code="clip",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        o_result = SPlug(
+            code="result",
+            value=False,
+            type=SType.kBool,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_clip)
+        self.addPlug(o_result)
+
+    def execute(self, force=False):
+        """Edit the metadata for the given clip using each custom input plugs like fields to edit.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+
+        plugsList = self.getPlugs(SDirection.kIn)
+        clip = self.getPlug("clip").value
+        result = True
+        if len(plugsList) > 2:
+            for p in plugsList:
+                if not p.type is SType.kTrigger and p.code != "clip":
+                    try:
+                        resAux = clip.SetMetadata(p.code, p.value)
+                        if result:
+                            result = resAux  # Only edit the result if it's True for now
+                    except Exception as e:
+                        result = False
+                        logger.warning("The metadata of type '{0}' could not be set.".format(p.code))
+
+        self.getPlug("result", SDirection.kOut).setValue(result)
+        super(self.__class__, self).execute()
+
+
 class DVR_ProjectExport(DVR_Base):
     """Operator to get the current Resolve project object.
     Works in Davinci Resolve.
@@ -442,6 +492,7 @@ catalog = {
     "Version": "1.0.0",
     "Author": "Shift R&D Team",
     "Operators": [
+        [DVR_MetadataSet, []],
         [DVR_ProjectExport, []],
         [DVR_ProjectGet, []],
         [DVR_TimelineExport, []],
