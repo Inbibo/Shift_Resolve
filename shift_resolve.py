@@ -170,6 +170,81 @@ class DVR_ProjectGet(DVR_Base):
         super(self.__class__, self).execute()
 
 
+class DVR_TimelineExport(DVR_Base):
+    """Operator to export a Davinci Resolve Timeline object.
+    You can select a specific file format for the export or set Auto to get the format from the filepath extension.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+        i_timeline = SPlug(
+            code="timeline",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_filepath = SPlug(
+            code="filepath",
+            value="",
+            type=SType.kFileOut,
+            direction=SDirection.kIn,
+            parent=self)
+        i_format = SPlug(
+            code="format",
+            value="FCP7 XML",
+            type=SType.kEnum,
+            options=list(self.timelineTypes.keys()),  # Get the format types from the class constant
+            direction=SDirection.kIn,
+            parent=self)
+        o_result = SPlug(
+            code="result",
+            value=False,
+            type=SType.kBool,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_timeline)
+        self.addPlug(i_filepath)
+        self.addPlug(i_format)
+        self.addPlug(o_result)
+
+    def execute(self, force=False):
+        """Export the given timeline in the given format from Resolve.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        timeline = self.getPlug("timeline", SDirection.kIn).value
+        filepath = self.getPlug("filepath", SDirection.kIn).value
+        timelineFormat = self.getPlug("format", SDirection.kIn).value
+        # Check the input values
+        if timeline is None:
+            raise ValueError("A Timeline object is required to execute the export")
+        timelineType = self.timelineTypes.get(timelineFormat)
+        if timelineType is None:
+            raise ValueError("The timeline format '{0}' it's not recognized.".format(timelineFormat))
+        # Check filepath suffix
+        if not filepath.endswith(timelineType.get("suffix")):
+            raise ValueError("The filepath must end with the format suffix type '{0}', not '{1}'.".format(
+                timelineType.get("suffix"),
+                filepath.rpartition["."][2]
+            ))
+        # Export the timeline
+        try:
+            if type(timelineType.get("type")) is list:
+                result = timeline.Export(filepath, timelineType.get("type")[0], timelineType.get("type")[1])
+            else:
+                result = timeline.Export(filepath, timelineType.get("type"))
+        except Exception as e:
+            logger.error(e)
+            raise RuntimeError("Timeline export process have fail.")
+        self.getPlug("result", SDirection.kOut).setValue(result)
+        super(self.__class__, self).execute()
+
+
 class DVR_TimelineGet(DVR_Base):
     """Operator to get a Davinci Resolve Timeline object.
     Select the getMethod to be able to retrieve a timeline by name, by index number or
@@ -258,9 +333,8 @@ class DVR_TimelineGet(DVR_Base):
         super(self.__class__, self).execute()
 
 
-class DVR_TimelineExport(DVR_Base):
-    """Operator to export a Davinci Resolve Timeline object.
-    You can select a specific file format for the export or set Auto to get the format from the filepath extension.
+class DVR_TimelineNameGet(DVR_Base):
+    """Operator to get the name of a timeline.
     Works in Davinci Resolve.
 
     """
@@ -273,30 +347,69 @@ class DVR_TimelineExport(DVR_Base):
             type=SType.kInstance,
             direction=SDirection.kIn,
             parent=self)
-        i_filepath = SPlug(
-            code="filepath",
-            value="",
-            type=SType.kFileOut,
-            direction=SDirection.kIn,
-            parent=self)
-        i_format = SPlug(
-            code="format",
-            value="FCP7 XML",
-            type=SType.kEnum,
-            options=list(self.timelineTypes.keys()),  # Get the format types from the class constant
-            direction=SDirection.kIn,
-            parent=self)
-        o_result = SPlug(
-            code="result",
+        o_name = SPlug(
+            code="name",
             value="",
             type=SType.kString,
-            direction=SDirection.kIn,
+            direction=SDirection.kOut,
             parent=self)
 
 
         self.addPlug(i_timeline)
-        self.addPlug(i_filepath)
-        self.addPlug(i_format)
+        self.addPlug(o_name)
+
+    def execute(self, force=False):
+        """Returns the specified timeline obj from Resolve.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        timeline = self.getPlug("timeline", SDirection.kIn).value
+
+        # Check the input values
+        if timeline is None:
+            raise ValueError("A Timeline object is required to execute the export")
+
+        # Export the timeline
+        try:
+            name = timeline.GetName()
+        except Exception as e:
+            logger.error(e)
+            raise RuntimeError("The timeline name could not be get.")
+        self.getPlug("name", SDirection.kOut).setValue(name)
+        super(self.__class__, self).execute()
+
+
+class DVR_TimelineNameSet(DVR_Base):
+    """Operator to get the name of a timeline.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+        i_timeline = SPlug(
+            code="timeline",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_name = SPlug(
+            code="name",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        o_result = SPlug(
+            code="result",
+            value=False,
+            type=SType.kBool,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_timeline)
+        self.addPlug(i_name)
         self.addPlug(o_result)
 
     def execute(self, force=False):
@@ -307,29 +420,17 @@ class DVR_TimelineExport(DVR_Base):
         """
         self.checkDvr()
         timeline = self.getPlug("timeline", SDirection.kIn).value
-        filepath = self.getPlug("filepath", SDirection.kIn).value
-        timelineFormat = self.getPlug("format", SDirection.kIn).value
+        name = self.getPlug("name", SDirection.kIn).value
         # Check the input values
         if timeline is None:
             raise ValueError("A Timeline object is required to execute the export")
-        timelineType = self.timelineTypes.get(timelineFormat)
-        if timelineType is None:
-            raise ValueError("The timeline format '{0}' it's not recognized.".format(timelineFormat))
-        # Check filepath suffix
-        if not filepath.endswith(timelineType.get("suffix")):
-            raise ValueError("The filepath must end with the format suffix type '{0}', not '{1}'.".format(
-                timelineType.get("suffix"),
-                filepath.rpartition["."][2]
-            ))
+
         # Export the timeline
         try:
-            if type(timelineType.get("type")) is list:
-                result = timeline.Export(filepath, timelineType.get("type")[0], timelineType.get("type")[1])
-            else:
-                result = timeline.Export(filepath, timelineType.get("type"))
+            result = timeline.SetName(name)
         except Exception as e:
             logger.error(e)
-            raise RuntimeError("Timeline export process have fail.")
+            raise RuntimeError("The timeline name could not be set.")
         self.getPlug("result", SDirection.kOut).setValue(result)
         super(self.__class__, self).execute()
 
@@ -343,7 +444,9 @@ catalog = {
     "Operators": [
         [DVR_ProjectExport, []],
         [DVR_ProjectGet, []],
+        [DVR_TimelineExport, []],
         [DVR_TimelineGet, []],
-        [DVR_TimelineExport, []]
+        [DVR_TimelineNameGet, []],
+        [DVR_TimelineNameSet, []]
     ]
 }
