@@ -356,6 +356,7 @@ class DVR_TimelineGet(DVR_Base):
             direction=SDirection.kOut,
             parent=self)
 
+        self.addPlug(i_project)
         self.addPlug(i_getMethod)
         self.addPlug(i_key)
         self.addPlug(o_timeline)
@@ -399,66 +400,28 @@ class DVR_TimelineGet(DVR_Base):
         super(self.__class__, self).execute()
 
 
-class DVR_TimelineNameGet(DVR_Base):
-    """Operator to get the name of a timeline.
+class DVR_TimelineItemGet(DVR_Base):
+    """Operator to get a timeline item object from a given list of items.
+    You can search for a specific clip with a specific name. With the nameSource property
+    you can choose to check the name from the timeline item or the name from the media pool item (clip).
+    The operator returns the timeline item object (item) and the media pool item (clip).
     Works in Davinci Resolve.
 
     """
 
     def __init__(self, code, parent):
         super(self.__class__, self).__init__(code, parent=parent)
-        i_timeline = SPlug(
-            code="timeline",
+        i_items = SPlug(
+            code="items",
             value=None,
             type=SType.kInstance,
             direction=SDirection.kIn,
             parent=self)
-        o_name = SPlug(
-            code="name",
-            value="",
-            type=SType.kString,
-            direction=SDirection.kOut,
-            parent=self)
-
-
-        self.addPlug(i_timeline)
-        self.addPlug(o_name)
-
-    def execute(self, force=False):
-        """Returns the specified timeline obj from Resolve.
-
-        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
-
-        """
-        self.checkDvr()
-        timeline = self.getPlug("timeline", SDirection.kIn).value
-
-        # Check the input values
-        if timeline is None:
-            raise ValueError("A Timeline object is required to execute the export")
-
-        # Export the timeline
-        try:
-            name = timeline.GetName()
-        except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The timeline name could not be get.")
-        self.getPlug("name", SDirection.kOut).setValue(name)
-        super(self.__class__, self).execute()
-
-
-class DVR_TimelineNameSet(DVR_Base):
-    """Operator to get the name of a timeline.
-    Works in Davinci Resolve.
-
-    """
-
-    def __init__(self, code, parent):
-        super(self.__class__, self).__init__(code, parent=parent)
-        i_timeline = SPlug(
-            code="timeline",
-            value=None,
-            type=SType.kInstance,
+        i_nameSource = SPlug(
+            code="nameSource",
+            value="TimelineItem",
+            type=SType.kEnum,
+            options=["TimelineItem", "MediaPoolClip"],
             direction=SDirection.kIn,
             parent=self)
         i_name = SPlug(
@@ -467,37 +430,67 @@ class DVR_TimelineNameSet(DVR_Base):
             type=SType.kString,
             direction=SDirection.kIn,
             parent=self)
-        o_result = SPlug(
-            code="result",
-            value=False,
-            type=SType.kBool,
+        o_item = SPlug(
+            code="item",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+        o_mediaPoolItem = SPlug(
+            code="clip",
+            value=None,
+            type=SType.kInstance,
             direction=SDirection.kOut,
             parent=self)
 
-        self.addPlug(i_timeline)
+        self.addPlug(i_items)
+        self.addPlug(i_nameSource)
         self.addPlug(i_name)
-        self.addPlug(o_result)
+        self.addPlug(o_item)
+        self.addPlug(o_mediaPoolItem)
+
 
     def execute(self, force=False):
-        """Returns the specified timeline obj from Resolve.
+        """Returns a list of timeline items from the given timeline.
 
         @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
 
         """
         self.checkDvr()
-        timeline = self.getPlug("timeline", SDirection.kIn).value
-        name = self.getPlug("name", SDirection.kIn).value
-        # Check the input values
-        if timeline is None:
-            raise ValueError("A Timeline object is required to execute the export")
+        items = self.getPlug("items", SDirection.kIn).value
+        nameSource = self.getPlug("nameSource", SDirection.kIn).value
+        inName = self.getPlug("name", SDirection.kIn).value
 
-        # Export the timeline
-        try:
-            result = timeline.SetName(name)
-        except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The timeline name could not be set.")
-        self.getPlug("result", SDirection.kOut).setValue(result)
+        # Check the input values
+        if not items:
+            raise ValueError("No items provided. A list of timeline items is required to get one item.")
+        resultItem = None
+        for item in items:
+            if nameSource == "TimelineItem":
+                itemName = item.GetName()
+            elif nameSource == "MediaPoolClip":
+                mediaPoolItemObj = item.GetMediaPoolItem()
+                if not mediaPoolItemObj:
+                    continue
+                itemName = mediaPoolItemObj.GetClipProperty("Clip Name")
+            else:
+                raise ValueError("Name source object not recognized.")
+            if itemName != inName:
+                continue
+            resultItem = item
+            break
+
+        if resultItem:
+            try:
+                mediaPoolItem = resultItem.GetMediaPoolItem()
+            except Exception as e:
+                logger.warning(e)
+                logger.warning("The MediaPool Item could not be get from the timeline item. Returning None.")
+                mediaPoolItem = None
+        else:
+            mediaPoolItem = None
+        self.getPlug("item", SDirection.kOut).setValue(resultItem)
+        self.getPlug("clip", SDirection.kOut).setValue(mediaPoolItem)
         super(self.__class__, self).execute()
 
 
@@ -609,27 +602,66 @@ class DVR_TimelineItemsGet(DVR_Base):
         super(self.__class__, self).execute()
 
 
-class DVR_TimelineItemGet(DVR_Base):
-    """Operator to get a timeline item object from a given list of items.
-    You can search for a specific clip with a specific name. With the nameSource property
-    you can choose to check the name from the timeline item or the name from the media pool item.
+class DVR_TimelineNameGet(DVR_Base):
+    """Operator to get the name of a timeline.
     Works in Davinci Resolve.
 
     """
 
     def __init__(self, code, parent):
         super(self.__class__, self).__init__(code, parent=parent)
-        i_items = SPlug(
-            code="items",
+        i_timeline = SPlug(
+            code="timeline",
             value=None,
             type=SType.kInstance,
             direction=SDirection.kIn,
             parent=self)
-        i_nameSource = SPlug(
-            code="nameSource",
-            value="TimelineItem",
-            type=SType.kEnum,
-            options=["TimelineItem", "MediaPoolClip"],
+        o_name = SPlug(
+            code="name",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kOut,
+            parent=self)
+
+
+        self.addPlug(i_timeline)
+        self.addPlug(o_name)
+
+    def execute(self, force=False):
+        """Returns the specified timeline obj from Resolve.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        timeline = self.getPlug("timeline", SDirection.kIn).value
+
+        # Check the input values
+        if timeline is None:
+            raise ValueError("A Timeline object is required to execute the export")
+
+        # Export the timeline
+        try:
+            name = timeline.GetName()
+        except Exception as e:
+            logger.error(e)
+            raise RuntimeError("The timeline name could not be get.")
+        self.getPlug("name", SDirection.kOut).setValue(name)
+        super(self.__class__, self).execute()
+
+
+class DVR_TimelineNameSet(DVR_Base):
+    """Operator to get the name of a timeline.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+        i_timeline = SPlug(
+            code="timeline",
+            value=None,
+            type=SType.kInstance,
             direction=SDirection.kIn,
             parent=self)
         i_name = SPlug(
@@ -638,67 +670,37 @@ class DVR_TimelineItemGet(DVR_Base):
             type=SType.kString,
             direction=SDirection.kIn,
             parent=self)
-        o_item = SPlug(
-            code="item",
-            value=None,
-            type=SType.kInstance,
-            direction=SDirection.kOut,
-            parent=self)
-        o_mediaPoolItem = SPlug(
-            code="mediaPoolItem",
-            value=None,
-            type=SType.kInstance,
+        o_result = SPlug(
+            code="result",
+            value=False,
+            type=SType.kBool,
             direction=SDirection.kOut,
             parent=self)
 
-        self.addPlug(i_items)
-        self.addPlug(i_nameSource)
+        self.addPlug(i_timeline)
         self.addPlug(i_name)
-        self.addPlug(o_item)
-        self.addPlug(o_mediaPoolItem)
-
+        self.addPlug(o_result)
 
     def execute(self, force=False):
-        """Returns a list of timeline items from the given timeline.
+        """Returns the specified timeline obj from Resolve.
 
         @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
 
         """
         self.checkDvr()
-        items = self.getPlug("items", SDirection.kIn).value
-        nameSource = self.getPlug("nameSource", SDirection.kIn).value
-        inName = self.getPlug("name", SDirection.kIn).value
-
+        timeline = self.getPlug("timeline", SDirection.kIn).value
+        name = self.getPlug("name", SDirection.kIn).value
         # Check the input values
-        if not items:
-            raise ValueError("No items provided. A list of timeline items is required to get one item.")
-        resultItem = None
-        for item in items:
-            if nameSource == "TimelineItem":
-                itemName = item.GetName()
-            elif nameSource == "MediaPoolClip":
-                mediaPoolItemObj = item.GetMediaPoolItem()
-                if not mediaPoolItemObj:
-                    continue
-                itemName = mediaPoolItemObj.GetClipProperty("Clip Name")
-            else:
-                raise ValueError("Name source object not recognized.")
-            if itemName != inName:
-                continue
-            resultItem = item
-            break
-        
-        if resultItem:
-            try:
-                mediaPoolItem = resultItem.GetMediaPoolItem()
-            except Exception as e:
-                logger.warning(e)
-                logger.warning("The MediaPool Item could not be get from the timeline item. Returning None.")
-                mediaPoolItem = None
-        else:
-            mediaPoolItem = None
-        self.getPlug("item", SDirection.kOut).setValue(resultItem)
-        self.getPlug("mediaPoolItem", SDirection.kOut).setValue(mediaPoolItem)
+        if timeline is None:
+            raise ValueError("A Timeline object is required to execute the export")
+
+        # Export the timeline
+        try:
+            result = timeline.SetName(name)
+        except Exception as e:
+            logger.error(e)
+            raise RuntimeError("The timeline name could not be set.")
+        self.getPlug("result", SDirection.kOut).setValue(result)
         super(self.__class__, self).execute()
 
 
@@ -714,9 +716,9 @@ catalog = {
         [DVR_ProjectGet, []],
         [DVR_TimelineExport, []],
         [DVR_TimelineGet, []],
-        [DVR_TimelineNameGet, []],
-        [DVR_TimelineNameSet, []],
+        [DVR_TimelineItemGet, []],
         [DVR_TimelineItemsGet, []],
-        [DVR_TimelineItemGet, []]
+        [DVR_TimelineNameGet, []],
+        [DVR_TimelineNameSet, []]
     ]
 }
