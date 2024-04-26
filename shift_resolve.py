@@ -489,6 +489,60 @@ class DVR_TimelineGet(DVR_Base):
         super(self.__class__, self).execute()
 
 
+class DVR_TimelineImport(DVR_Base):
+    """Operator to import a timeline file in the Project.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+        i_project = SPlug(
+            code="project",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_filepath = SPlug(
+            code="filepath",
+            value="",
+            type=SType.kFileIn,
+            direction=SDirection.kIn,
+            parent=self)
+        o_timeline = SPlug(
+            code="timeline",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+
+        self.addPlug(i_project)
+        self.addPlug(i_filepath)
+        self.addPlug(o_timeline)
+
+    def execute(self, force=False):
+        """Imports a given timeline file in the given DVR project.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        project = self.getPlug("project", SDirection.kIn).value
+        filepath = self.getPlug("filepath", SDirection.kIn).value
+        if not filepath:
+            raise ValueError("A filepath to a timeline file is required.")
+        if project is None:
+            raise ValueError("A project entity is required to import the timeline.")
+        # Export the timeline
+        try:
+            timeline = project.ImportTimelineFromFile(filepath)
+        except Exception as e:
+            logger.error(e)
+            raise RuntimeError("Timeline import process have fail.")
+        self.getPlug("timeline", SDirection.kOut).setValue(timeline)
+        super(self.__class__, self).execute()
+
+
 class DVR_TimelineItemGet(DVR_Base):
     """Operator to get a timeline item object from a given list of items.
     You can search for a specific clip with a specific name. With the nameSource property
@@ -807,6 +861,7 @@ catalog = {
         [DVR_ProjectImport, []],
         [DVR_TimelineExport, []],
         [DVR_TimelineGet, []],
+        [DVR_TimelineImport, []],
         [DVR_TimelineItemGet, []],
         [DVR_TimelineItemsGet, []],
         [DVR_TimelineNameGet, []],
