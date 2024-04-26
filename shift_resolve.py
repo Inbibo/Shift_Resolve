@@ -110,6 +110,51 @@ class DVR_Base(SOperator):
         return idx
 
 
+class DVR_MetadataGet(DVR_Base):
+    """Operator to get the metadata of a given clip of the Media Pool.
+    Uses the output plugs names like field of the metadata to read. Add the custom plugs in the output direction
+    that should be read from the metadata of the given clip.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_clip = SPlug(
+            code="clip",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+
+        self.addPlug(i_clip)
+
+    def execute(self, force=False):
+        """Gets the required metadata of the given clip using each custom output plugs like fields to read.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+
+        plugsList = self.getPlugs(SDirection.kOut)
+        clip = self.getPlug("clip").value
+        if clip is None:
+            raise ValueError("A clip object is needed to read the metadata from.")
+        result = True
+        if len(plugsList) > 1:
+            for p in plugsList:
+                if p.type is not SType.kTrigger:
+                    try:
+                        fieldValue = clip.GetMetadata(p.code)
+                        if result:
+                            p.setValue(fieldValue)
+                    except Exception as e:
+                        logger.warning("The metadata of type '{0}' could not be get.".format(p.code))
+
+        super(self.__class__, self).execute()
+
+
 class DVR_MetadataSet(DVR_Base):
     """Operator to edit the metadata of a given clip.
     Works in Davinci Resolve.
@@ -755,6 +800,7 @@ catalog = {
     "Version": "1.0.0",
     "Author": "Shift R&D Team",
     "Operators": [
+        [DVR_MetadataGet, []],
         [DVR_MetadataSet, []],
         [DVR_ProjectExport, []],
         [DVR_ProjectGet, []],
