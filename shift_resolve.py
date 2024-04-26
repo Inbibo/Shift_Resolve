@@ -535,7 +535,7 @@ class DVR_TimelineImport(DVR_Base):
             raise ValueError("A project entity is required to import the timeline.")
         # Export the timeline
         try:
-            timeline = project.ImportTimelineFromFile(filepath)
+            timeline = project.GetMediaPool().ImportTimelineFromFile(filepath)
         except Exception as e:
             logger.error(e)
             raise RuntimeError("Timeline import process have fail.")
