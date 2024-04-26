@@ -244,6 +244,50 @@ class DVR_ProjectGet(DVR_Base):
         super(self.__class__, self).execute()
 
 
+class DVR_ProjectImport(DVR_Base):
+    """Operator to import a Davinci Resolve project from a file.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+
+        i_filepath = SPlug(
+            code="filepath",
+            value="",
+            type=SType.kFileIn,
+            direction=SDirection.kIn,
+            parent=self)
+        o_result = SPlug(
+            code="result",
+            value=False,
+            type=SType.kBool,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_filepath)
+        self.addPlug(o_result)
+
+    def execute(self, force=False):
+        """Imports a given project in Davinci Resolve.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        filepath = self.getPlug("filepath", SDirection.kIn).value
+        if not filepath or not filepath.endswith(".drp"):
+            raise ValueError("The filepath to the project have to be a .drp format.")
+        try:
+            result = projectManager.ImportProject(filepath)
+        except Exception as e:
+            logger.error(e)
+            raise RuntimeError("The project couldn't be imported. Check the log for more information.")
+        self.getPlug("result", SDirection.kOut).setValue(result)
+        super(self.__class__, self).execute()
+
+
 class DVR_TimelineExport(DVR_Base):
     """Operator to export a Davinci Resolve Timeline object.
     You can select a specific file format for the export or set Auto to get the format from the filepath extension.
@@ -714,6 +758,7 @@ catalog = {
         [DVR_MetadataSet, []],
         [DVR_ProjectExport, []],
         [DVR_ProjectGet, []],
+        [DVR_ProjectImport, []],
         [DVR_TimelineExport, []],
         [DVR_TimelineGet, []],
         [DVR_TimelineItemGet, []],
