@@ -110,6 +110,110 @@ class DVR_Base(SOperator):
         return idx
 
 
+class DVR_FolderGet(DVR_Base):
+    """Operator to get a Folder from the media pool of the project.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_project = SPlug(
+            code="project",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_getMethod = SPlug(
+            code="getMethod",
+            value="Current",
+            type=SType.kEnum,
+            options=["Current", "Root", "FullPath"],
+            direction=SDirection.kIn,
+            parent=self)
+        i_folderPath = SPlug(
+            code="folderPath",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        o_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+
+        self.addPlug(i_project)
+        self.addPlug(i_getMethod)
+        self.addPlug(i_folderPath)
+        self.addPlug(o_folder)
+
+    def _recursiveFolderResearch(self, currentFolder, currentPath, targetPath):
+        """Recursive function to find a fonder object based in the full path of the folder.
+        The Resolve API doesn't allow to get a folder by name or full path, only allows to get the
+        root, current and subfolders. Because this, this function is a util to research over a given folder and subfolders
+        to be able to return a folder given a full path from the root folder.
+
+        @param currentFolder Resolve.Folder: The current folder to check the subFolders from.
+        @param currentPath str: The current status of the path that is being research.
+        @param targetPath str: The target result of the path. The full folder path to get.
+
+        @returns Resolve.Folder: The Folder that match the targetPath.
+
+        """
+        subFolders = currentFolder.GetSubFolderList()
+        for subFolder in subFolders:
+            subFolderName = subFolder.GetName()
+            pathCheck = currentPath + "{0}/".format(subFolderName)
+            if pathCheck == targetPath:
+                return subFolderName # Here we end the recursion
+            elif targetPath.startswith(pathCheck):
+                # The folder is correct, but we still need another recursion level at least
+                return self._recursiveFolderResearch(subFolder, pathCheck, targetPath)
+        return  # If we go to this return means that the folder haven't been found.
+
+
+
+    def execute(self, force=False):
+        """Gets the requested folder object from the media pool.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        project = self.getPlug("project").value
+        getMethod = self.getPlug("getMethod").value
+        folderPath = self.getPlug("folderPath").value
+        if project is None:
+            raise ValueError("A project object is needed to read the metadata from.")
+        mediapool = project.GetMediaPool()
+        if getMethod == "Current":
+            folder = mediapool.GetCurrentFolder()
+        elif getMethod == "Root":
+            folder = mediapool.GetRootFolder()
+        elif getMethod == "FullPath":
+            if not folderPath:
+                raise ValueError("A folder path is required to use the FullPath get method.")
+            # TODO START ----------------------
+            #  Remove all this section by a proper resolve API function when the Resolve programmers
+            #  allows us to get a folder by name :)
+            folderPath = folderPath.replace("\\", "/")
+            inputFolderPath = folderPath if folderPath.endswith("/") else folderPath + "/"
+            try:
+                folder = self._recursiveFolderResearch(mediapool.GetRootFolder(), "", inputFolderPath)
+            except Exception as e:
+                logger.error(e)
+                raise RuntimeError("The folder couldn't be modified, this action is required to use "
+                                   "the FullPath get method. Check that the Folder path is correct.")
+            # TODO END ------------------------
+        else:
+            raise ValueError("GetMethod value not reconized.")
+
+        self.getPlug("folder", SDirection.kOut).setValue(folder)
+        super(self.__class__, self).execute()
+
+
 class DVR_MetadataGet(DVR_Base):
     """Operator to get the metadata of a given clip of the Media Pool.
     Uses the output plugs names like field of the metadata to read. Add the custom plugs in the output direction
@@ -854,6 +958,8 @@ catalog = {
     "Version": "1.0.0",
     "Author": "Shift R&D Team",
     "Operators": [
+        [DVR_FolderGet, []],
+        [DVR_FolderSet, []],
         [DVR_MetadataGet, []],
         [DVR_MetadataSet, []],
         [DVR_ProjectExport, []],
