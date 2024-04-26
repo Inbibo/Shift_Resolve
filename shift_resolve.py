@@ -110,6 +110,50 @@ class DVR_Base(SOperator):
         return idx
 
 
+class DVR_ClipsGet(DVR_Base):
+    """Operator to get all the clips from a folder.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        o_clips = SPlug(
+            code="clips",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_folder)
+        self.addPlug(o_clips)
+
+    def execute(self, force=False):
+        """Gets the list of clips from the given folder.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        folder = self.getPlug("folder", SDirection.kIn).value
+        if folder is None:
+            raise ValueError("A folder object is needed to return the clips of inside.")
+        try:
+            clips = folder.GetClipList()
+        except Exception as e:
+            logger.error(e)
+            raise RuntimeError("The clips couldn't be get from the folder. Check the log for more info.")
+
+        self.getPlug("clips", SDirection.kOut).setValue(clips)
+        super(self.__class__, self).execute()
+
+
 class DVR_FolderAdd(DVR_Base):
     """Operator to create a folder inside other folder with the given name.
     Works in Davinci Resolve.
@@ -1074,6 +1118,7 @@ catalog = {
     "Version": "1.0.0",
     "Author": "Shift R&D Team",
     "Operators": [
+        [DVR_ClipsGet, []],
         [DVR_FolderAdd, []],
         [DVR_FolderGet, []],
         [DVR_FolderSet, []],
