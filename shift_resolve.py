@@ -110,8 +110,72 @@ class DVR_Base(SOperator):
         return idx
 
 
+class DVR_FolderAdd(DVR_Base):
+    """Operator to create a folder inside other folder with the given name.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_project = SPlug(
+            code="project",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_name = SPlug(
+            code="name",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        o_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_project)
+        self.addPlug(i_folder)
+        self.addPlug(i_name)
+        self.addPlug(o_folder)
+
+    def execute(self, force=False):
+        """Add a new subFolder in the given folder with the given name.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        currentFolder = self.getPlug("folder", SDirection.kIn).value
+        folderName = self.getPlug("name", SDirection.kIn).value
+        project = self.getPlug("project", SDirection.kIn).value
+        if currentFolder is None:
+            raise ValueError("A folder object is needed to create the subFolder inside.")
+        if project is None:
+            raise ValueError("A project object is needed to create the folder.")
+        try:
+            folder = project.AddSubFolder(currentFolder, folderName)
+        except Exception as e:
+            logger.error(e)
+            raise RuntimeError("The folder couldn't be created. Check the log for more info.")
+
+        self.getPlug("folder", SDirection.kOut).setValue(folder)
+        super(self.__class__, self).execute()
+
+
 class DVR_FolderGet(DVR_Base):
     """Operator to get a Folder from the media pool of the project.
+    Select the getMethod to return the current active folder, the root folder or a specific folder
+    by a full path to the folder.
     Works in Davinci Resolve.
 
     """
@@ -141,7 +205,7 @@ class DVR_FolderGet(DVR_Base):
             code="folder",
             value=None,
             type=SType.kInstance,
-            direction=SDirection.kIn,
+            direction=SDirection.kOut,
             parent=self)
 
         self.addPlug(i_project)
@@ -173,8 +237,6 @@ class DVR_FolderGet(DVR_Base):
                 return self._recursiveFolderResearch(subFolder, pathCheck, targetPath)
         return  # If we go to this return means that the folder haven't been found.
 
-
-
     def execute(self, force=False):
         """Gets the requested folder object from the media pool.
 
@@ -186,7 +248,7 @@ class DVR_FolderGet(DVR_Base):
         getMethod = self.getPlug("getMethod").value
         folderPath = self.getPlug("folderPath").value
         if project is None:
-            raise ValueError("A project object is needed to read the metadata from.")
+            raise ValueError("A project object is needed to get the folder from.")
         mediapool = project.GetMediaPool()
         if getMethod == "Current":
             folder = mediapool.GetCurrentFolder()
@@ -204,13 +266,67 @@ class DVR_FolderGet(DVR_Base):
                 folder = self._recursiveFolderResearch(mediapool.GetRootFolder(), "", inputFolderPath)
             except Exception as e:
                 logger.error(e)
-                raise RuntimeError("The folder couldn't be modified, this action is required to use "
-                                   "the FullPath get method. Check that the Folder path is correct.")
+                raise RuntimeError("The folder couldn't be found using the FullPath get method. "
+                                   "Check that the Folder path is correct.")
             # TODO END ------------------------
         else:
             raise ValueError("GetMethod value not reconized.")
 
         self.getPlug("folder", SDirection.kOut).setValue(folder)
+        super(self.__class__, self).execute()
+
+
+class DVR_FolderSet(DVR_Base):
+    """Operator to set the current active folder in the media pool of the project.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_project = SPlug(
+            code="project",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        o_result = SPlug(
+            code="result",
+            value=False,
+            type=SType.kBool,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_project)
+        self.addPlug(i_folder)
+        self.addPlug(o_result)
+
+    def execute(self, force=False):
+        """Sets the current active folder in the media pool of the project.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        folder = self.getPlug("folder", SDirection.kIn).value
+        project = self.getPlug("project", SDirection.kIn).value
+        if folder is None:
+            raise ValueError("A folder object is needed to create the subFolder inside.")
+        if project is None:
+            raise ValueError("A project object is needed to create the folder.")
+        try:
+            result = project.SetCurrentFolder(folder)
+        except Exception as e:
+            logger.error(e)
+            raise RuntimeError("The folder couldn't be set like active. Check the log for more info.")
+
+        self.getPlug("result", SDirection.kOut).setValue(result)
         super(self.__class__, self).execute()
 
 
@@ -617,7 +733,7 @@ class DVR_TimelineImport(DVR_Base):
             code="timeline",
             value=None,
             type=SType.kInstance,
-            direction=SDirection.kIn,
+            direction=SDirection.kOut,
             parent=self)
 
         self.addPlug(i_project)
@@ -958,6 +1074,7 @@ catalog = {
     "Version": "1.0.0",
     "Author": "Shift R&D Team",
     "Operators": [
+        [DVR_FolderAdd, []],
         [DVR_FolderGet, []],
         [DVR_FolderSet, []],
         [DVR_MetadataGet, []],
