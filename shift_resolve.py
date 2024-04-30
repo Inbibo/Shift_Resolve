@@ -657,7 +657,7 @@ class DVR_TimelineExport(DVR_Base):
         if not filepath.endswith(timelineType.get("suffix")):
             raise ValueError("The filepath must end with the format suffix type '{0}', not '{1}'.".format(
                 timelineType.get("suffix"),
-                filepath.rpartition["."][2]
+                filepath.rpartition(".")[2]
             ))
         # Export the timeline
         try:
@@ -986,9 +986,8 @@ class DVR_TimelineItemsGet(DVR_Base):
         # Get the items with the selected method
         if getMethod == "All":
             items = []
-            for trackIdx in range(1, timeline.GetTrackCount(trackType)):
-                if timeline.GetTrackName(trackType, trackIdx) == trackKey:
-                    items.extend(self._getItemsFromTrack(timeline, trackType, trackIdx))
+            for trackIdx in range(1, timeline.GetTrackCount(trackType) + 1):
+                items.extend(self._getItemsFromTrack(timeline, trackType, trackIdx))
             if not items:
                 logger.warning("No Timeline Items found.")
         elif getMethod == "ByTrackIdx":
@@ -996,7 +995,7 @@ class DVR_TimelineItemsGet(DVR_Base):
             items = self._getItemsFromTrack(timeline, trackType, trackIdx)
         elif getMethod == "ByTrackName":
             items = []
-            for trackIdx in range(1, timeline.GetTrackCount(trackType)):
+            for trackIdx in range(1, timeline.GetTrackCount(trackType) + 1):
                 if timeline.GetTrackName(trackType, trackIdx) == trackKey:
                     items = self._getItemsFromTrack(timeline, trackType, trackIdx)
                     break
