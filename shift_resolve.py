@@ -110,6 +110,70 @@ class DVR_Base(SOperator):
         return idx
 
 
+class DVR_ClipGet(DVR_Base):
+    """Operator to get a specific Clip from a list of Clips
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_clips = SPlug(
+            code="clips",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_getMethod = SPlug(
+            code="getMethod",
+            value="ByName",
+            type=SType.kEnum,
+            options=["ByName"],
+            direction=SDirection.kIn,
+            parent=self)
+        i_key = SPlug(
+            code="key",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        o_clip = SPlug(
+            code="clip",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_clips)
+        self.addPlug(i_getMethod)
+        self.addPlug(i_key)
+        self.addPlug(o_clip)
+
+    def execute(self, force=False):
+        """Gets the desired clip from a list of clips.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        clips = self.getPlug("clips", SDirection.kIn).value
+        getMethod = self.getPlug("getMethod", SDirection.kIn).value
+        clipKey = self.getPlug("key", SDirection.kIn).value
+        targetClip = None
+        if clips is None:
+            raise ValueError("A clip list is required to get an specific clip.")
+        if getMethod == "ByName":
+            for clip in clips:
+                if clip.GetClipProperty("Clip Name") == clipKey:
+                    targetClip = clip
+                    break
+        else:
+            raise ValueError("Not recognized get method.")
+
+        self.getPlug("clip", SDirection.kOut).setValue(targetClip)
+        super(self.__class__, self).execute()
+
+
 class DVR_ClipsGet(DVR_Base):
     """Operator to get all the clips from a folder.
     Works in Davinci Resolve.
@@ -1117,6 +1181,7 @@ catalog = {
     "Version": "1.0.0",
     "Author": "Shift R&D Team",
     "Operators": [
+        [DVR_ClipGet, []],
         [DVR_ClipsGet, []],
         [DVR_FolderAdd, []],
         [DVR_FolderGet, []],
