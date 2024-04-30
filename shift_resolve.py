@@ -271,7 +271,7 @@ class DVR_FolderAdd(DVR_Base):
         if project is None:
             raise ValueError("A project object is needed to create the folder.")
         try:
-            folder = project.AddSubFolder(currentFolder, folderName)
+            folder = project.GetMediaPool().AddSubFolder(currentFolder, folderName)
         except Exception as e:
             logger.error(e)
             raise RuntimeError("The folder couldn't be created. Check the log for more info.")
@@ -429,7 +429,7 @@ class DVR_FolderSet(DVR_Base):
         if project is None:
             raise ValueError("A project object is needed to create the folder.")
         try:
-            result = project.SetCurrentFolder(folder)
+            result = project.GetMediaPool().SetCurrentFolder(folder)
         except Exception as e:
             logger.error(e)
             raise RuntimeError("The folder couldn't be set like active. Check the log for more info.")
