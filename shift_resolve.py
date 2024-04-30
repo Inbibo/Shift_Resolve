@@ -309,6 +309,12 @@ class DVR_FolderGet(DVR_Base):
             type=SType.kString,
             direction=SDirection.kIn,
             parent=self)
+        i_createFolders = SPlug(
+            code="createFolders",
+            value=False,
+            type=SType.kBool,
+            direction=SDirection.kIn,
+            parent=self)
         o_folder = SPlug(
             code="folder",
             value=None,
@@ -319,9 +325,10 @@ class DVR_FolderGet(DVR_Base):
         self.addPlug(i_project)
         self.addPlug(i_getMethod)
         self.addPlug(i_folderPath)
+        self.addPlug(i_createFolders)
         self.addPlug(o_folder)
 
-    def _recursiveFolderResearch(self, currentFolder, currentPath, targetPath):
+    def _recursiveFolderResearch(self, currentFolder, currentPath, targetPath, mediapool, createFolders=False):
         """Recursive function to find a fonder object based in the full path of the folder.
         The Resolve API doesn't allow to get a folder by name or full path, only allows to get the
         root, current and subfolders. Because this, this function is a util to research over a given folder and subfolders
@@ -330,6 +337,7 @@ class DVR_FolderGet(DVR_Base):
         @param currentFolder Resolve.Folder: The current folder to check the subFolders from.
         @param currentPath str: The current status of the path that is being research.
         @param targetPath str: The target result of the path. The full folder path to get.
+        @param createFolders bool: If it's true, any not found folder, will be created. (Default=False)
 
         @returns Resolve.Folder: The Folder that match the targetPath.
 
@@ -342,7 +350,18 @@ class DVR_FolderGet(DVR_Base):
                 return subFolder  # Here we end the recursion
             elif targetPath.startswith(pathCheck):
                 # The folder is correct, but we still need another recursion level at least
-                return self._recursiveFolderResearch(subFolder, pathCheck, targetPath)
+                return self._recursiveFolderResearch(subFolder, pathCheck, targetPath, mediapool, createFolders=createFolders)
+        if createFolders:
+            newFolderName = targetPath.copy().replace(currentPath, "").partition("/")[0]
+            subFolder = mediapool.AddSubFolder(currentFolder, newFolderName)
+            subFolderName = subFolder.GetName()
+            pathCheck = currentPath + "{0}/".format(subFolderName)
+            if pathCheck == targetPath:
+                return subFolder  # Here we end the recursion
+            elif targetPath.startswith(pathCheck):
+                # The folder is correct, but we still need another recursion level at least
+                return self._recursiveFolderResearch(subFolder, pathCheck, targetPath, mediapool,
+                                                     createFolders=createFolders)
         return  # If we go to this return means that the folder haven't been found.
 
     def execute(self, force=False):
@@ -355,6 +374,7 @@ class DVR_FolderGet(DVR_Base):
         project = self.getPlug("project").value
         getMethod = self.getPlug("getMethod").value
         folderPath = self.getPlug("folderPath").value
+        createFolders = self.getPlug("createFolders").value
         if project is None:
             raise ValueError("A project object is needed to get the folder from.")
         mediapool = project.GetMediaPool()
@@ -371,7 +391,8 @@ class DVR_FolderGet(DVR_Base):
             folderPath = folderPath.replace("\\", "/")
             inputFolderPath = folderPath if folderPath.endswith("/") else folderPath + "/"
             try:
-                folder = self._recursiveFolderResearch(mediapool.GetRootFolder(), "", inputFolderPath)
+                folder = self._recursiveFolderResearch(
+                    mediapool.GetRootFolder(), "", inputFolderPath, mediapool, createFolders=createFolders)
             except Exception as e:
                 logger.error(e)
                 raise RuntimeError("The folder couldn't be found using the FullPath get method. "
