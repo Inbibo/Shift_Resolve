@@ -339,7 +339,7 @@ class DVR_FolderGet(DVR_Base):
             subFolderName = subFolder.GetName()
             pathCheck = currentPath + "{0}/".format(subFolderName)
             if pathCheck == targetPath:
-                return subFolderName # Here we end the recursion
+                return subFolder  # Here we end the recursion
             elif targetPath.startswith(pathCheck):
                 # The folder is correct, but we still need another recursion level at least
                 return self._recursiveFolderResearch(subFolder, pathCheck, targetPath)
