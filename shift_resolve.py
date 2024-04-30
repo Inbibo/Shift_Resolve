@@ -580,8 +580,7 @@ class DVR_TimelineItemsGet(DVR_Base):
         if getMethod == "All":
             items = []
             for trackIdx in range(1, timeline.GetTrackCount(trackType) + 1):
-                if timeline.GetTrackName(trackType, trackIdx) == trackKey:
-                    items.extend(self._getItemsFromTrack(timeline, trackType, trackIdx))
+                items.extend(self._getItemsFromTrack(timeline, trackType, trackIdx))
             if not items:
                 logger.warning("No Timeline Items found.")
         elif getMethod == "ByTrackIdx":
