@@ -304,7 +304,7 @@ class DVR_TimelineExport(DVR_Base):
         if not filepath.endswith(timelineType.get("suffix")):
             raise ValueError("The filepath must end with the format suffix type '{0}', not '{1}'.".format(
                 timelineType.get("suffix"),
-                filepath.rpartition["."][2]
+                filepath.rpartition(".")[2]
             ))
         # Export the timeline
         try:
