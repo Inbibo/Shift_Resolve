@@ -579,7 +579,7 @@ class DVR_TimelineItemsGet(DVR_Base):
         # Get the items with the selected method
         if getMethod == "All":
             items = []
-            for trackIdx in range(1, timeline.GetTrackCount(trackType)):
+            for trackIdx in range(1, timeline.GetTrackCount(trackType) + 1):
                 if timeline.GetTrackName(trackType, trackIdx) == trackKey:
                     items.extend(self._getItemsFromTrack(timeline, trackType, trackIdx))
             if not items:
@@ -589,7 +589,7 @@ class DVR_TimelineItemsGet(DVR_Base):
             items = self._getItemsFromTrack(timeline, trackType, trackIdx)
         elif getMethod == "ByTrackName":
             items = []
-            for trackIdx in range(1, timeline.GetTrackCount(trackType)):
+            for trackIdx in range(1, timeline.GetTrackCount(trackType) + 1):
                 if timeline.GetTrackName(trackType, trackIdx) == trackKey:
                     items = self._getItemsFromTrack(timeline, trackType, trackIdx)
                     break
