@@ -352,7 +352,7 @@ class DVR_FolderGet(DVR_Base):
                 # The folder is correct, but we still need another recursion level at least
                 return self._recursiveFolderResearch(subFolder, pathCheck, targetPath, mediapool, createFolders=createFolders)
         if createFolders:
-            newFolderName = targetPath.copy().replace(currentPath, "").partition("/")[0]
+            newFolderName = targetPath.replace(currentPath, "").partition("/")[0]
             subFolder = mediapool.AddSubFolder(currentFolder, newFolderName)
             subFolderName = subFolder.GetName()
             pathCheck = currentPath + "{0}/".format(subFolderName)
