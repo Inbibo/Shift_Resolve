@@ -838,6 +838,60 @@ class DVR_TimelineGet(DVR_Base):
         super(self.__class__, self).execute()
 
 
+class DVR_TimelineSet(DVR_Base):
+    """Operator to set a given timeline like current timeline in the project.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+        i_project = SPlug(
+            code="project",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_timeline = SPlug(
+            code="timeline",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        o_result = SPlug(
+            code="result",
+            value=False,
+            type=SType.kBool,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_project)
+        self.addPlug(i_timeline)
+        self.addPlug(o_result)
+
+    def execute(self, force=False):
+        """Set the given timeline like current timeline in the project.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        project = self.getPlug("project", SDirection.kIn).value
+        timeline = self.getPlug("timeline", SDirection.kIn).value
+
+        if project is None:
+            raise ValueError("A project entity is required to set the timeline.")
+        if timeline is None:
+            raise ValueError("A timeline entity is required to set the timeline.")
+        try:
+            result = project.SetCurrentTimeline(timeline)
+        except Exception as e:
+            raise RuntimeError("The current timeline could not be set.")
+
+        self.getPlug("result", SDirection.kOut).setValue(result)
+        super(self.__class__, self).execute()
+
+
 class DVR_TimelineImport(DVR_Base):
     """Operator to import a timeline file in the Project.
     Works in Davinci Resolve.
@@ -1214,6 +1268,7 @@ catalog = {
         [DVR_ProjectImport, []],
         [DVR_TimelineExport, []],
         [DVR_TimelineGet, []],
+        [DVR_TimelineSet, []],
         [DVR_TimelineImport, []],
         [DVR_TimelineItemGet, []],
         [DVR_TimelineItemsGet, []],
