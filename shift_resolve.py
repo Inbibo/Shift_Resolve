@@ -253,12 +253,6 @@ class DVR_TimelineExport(DVR_Base):
 
     def __init__(self, code, parent):
         super(self.__class__, self).__init__(code, parent=parent)
-        i_project = SPlug(
-            code="project",
-            value=None,
-            type=SType.kInstance,
-            direction=SDirection.kIn,
-            parent=self)
         i_timeline = SPlug(
             code="timeline",
             value=None,
@@ -285,7 +279,6 @@ class DVR_TimelineExport(DVR_Base):
             direction=SDirection.kOut,
             parent=self)
 
-        self.addPlug(i_project)
         self.addPlug(i_timeline)
         self.addPlug(i_filepath)
         self.addPlug(i_format)
@@ -298,15 +291,12 @@ class DVR_TimelineExport(DVR_Base):
 
         """
         self.checkDvr()
-        project = self.getPlug("project", SDirection.kIn).value
         timeline = self.getPlug("timeline", SDirection.kIn).value
         filepath = self.getPlug("filepath", SDirection.kIn).value
         timelineFormat = self.getPlug("format", SDirection.kIn).value
         # Check the input values
         if timeline is None:
             raise ValueError("A Timeline object is required to execute the export")
-        if project is None:
-            raise ValueError("A Project object is required to execute the export")
         timelineType = self.timelineTypes.get(timelineFormat)
         if timelineType is None:
             raise ValueError("The timeline format '{0}' it's not recognized.".format(timelineFormat))
@@ -318,13 +308,10 @@ class DVR_TimelineExport(DVR_Base):
             ))
         # Export the timeline
         try:
-            currentTimeline = project.GetCurrentTimeline()
-            project.SetCurrentTimeline(timeline)  # We need to be in the desired timeline to export properly
             if type(timelineType.get("type")) is list:
                 result = timeline.Export(filepath, timelineType.get("type")[0], timelineType.get("type")[1])
             else:
                 result = timeline.Export(filepath, timelineType.get("type"))
-            project.SetCurrentTimeline(currentTimeline)
         except Exception as e:
             logger.error(e)
             raise RuntimeError("Timeline export process have fail.")
