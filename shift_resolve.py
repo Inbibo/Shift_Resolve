@@ -331,7 +331,8 @@ class DVR_FolderGet(DVR_Base):
     def _recursiveFolderResearch(self, currentFolder, currentPath, targetPath, mediapool, createFolders=False):
         """Recursive function to find a folder object based in the full path of the folder.
         The Resolve API doesn't allow to get a folder by name or full path, only allows to get the
-        root, current and subfolders. Because this, this function is a util to research over a given folder and subfolders
+        root, current and subfolders. Because of this, this function is a utility to research over a given folder and subfolders
+
         to be able to return a folder given a full path from the root folder.
 
         @param currentFolder Resolve.Folder: The current folder to check the subFolders from.
