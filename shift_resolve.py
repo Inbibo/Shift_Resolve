@@ -455,7 +455,7 @@ class DVR_FolderSet(DVR_Base):
             result = project.GetMediaPool().SetCurrentFolder(folder)
         except Exception as e:
             logger.error(e)
-            raise RuntimeError("The folder couldn't be set like active. Check the log for more info.")
+            raise RuntimeError("The folder couldn't be set as active. Check the log for more info.")
 
         self.getPlug("result", SDirection.kOut).setValue(result)
         super(self.__class__, self).execute()
