@@ -943,7 +943,7 @@ class DVR_TimelineImport(DVR_Base):
             timeline = project.GetMediaPool().ImportTimelineFromFile(filepath)
         except Exception as e:
             logger.error(e)
-            raise RuntimeError("Timeline import process have fail.")
+            raise RuntimeError("Timeline import process has failed.")
         self.getPlug("timeline", SDirection.kOut).setValue(timeline)
         super(self.__class__, self).execute()
 
