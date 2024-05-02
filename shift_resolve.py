@@ -547,7 +547,8 @@ class DVR_TimelineItemsGet(DVR_Base):
     def _getItemsFromTrack(self, timeline, trackType, trackIdx):
         """Gets the timeline items list for the given track type and index from the given timeline.
 
-        @param timeline DaVinciResolve.Timeline: The timeline object where the clips will be got.
+        @param timeline DaVinciResolve.Timeline: The timeline object from where the clips will be get.
+
         @param trackType str: The track type to read. Must be video, audio or subtitle.
         @param trackIdx int: The index of the track to read the clips from.
 
