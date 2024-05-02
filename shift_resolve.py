@@ -91,7 +91,7 @@ class DVR_Base(SOperator):
 
         @param value str: The string that should contain an integer to be converted.
         @param objType str: The name of the object where the index will be used.
-        @param lenght: The maximum index value that can be accepted in the object.
+        @param lenght int: The maximum index value that can be accepted in the object.
 
         @return int: The index verified and ready to use.
 
