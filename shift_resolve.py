@@ -85,12 +85,12 @@ class DVR_Base(SOperator):
             raise EnvironmentError("This operator can be executed only inside Davinci Resolve with "
                                    "Python installed and the API configured.")
 
-    def getDrvIdx(self, value, objType, lenght):
+    def getDrvIdx(self, value, objTypeName, lenght):
         """Converts the given value to a integer index and checks that is a valid index for the obj.
         If the index is not valid, the functions raise and error or log a warning.
 
         @param value str: The string that should contain an integer to be converted.
-        @param objType str: The name of the object where the index will be used.
+        @param objTypeName str: The type name of the object where the index will be used.
         @param lenght int: The maximum index value that can be accepted in the object.
 
         @return int: The index verified and ready to use.
@@ -104,9 +104,9 @@ class DVR_Base(SOperator):
             raise ValueError("The key value must be an integer to use this method.")
         if idx > lenght or idx < 0:
             raise ValueError("{0} index out of range. "
-                             "There are {0} items available.".format(objType, idx))
+                             "There are {0} items available.".format(objTypeName, idx))
         elif idx == 0:
-            logger.warning("The resolve lists for {0} starts at index 1.".format(objType))
+            logger.warning("The resolve lists for {0} starts at index 1.".format(objTypeName))
         return idx
 
 
