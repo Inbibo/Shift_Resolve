@@ -400,7 +400,8 @@ class DVR_FolderGet(DVR_Base):
                                    "Check that the Folder path is correct.")
             # TODO END ------------------------
         else:
-            raise ValueError("GetMethod value not reconized.")
+            raise ValueError("GetMethod value not recognised.")
+
 
         self.getPlug("folder", SDirection.kOut).setValue(folder)
         super(self.__class__, self).execute()
