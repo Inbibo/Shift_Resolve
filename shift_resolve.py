@@ -85,13 +85,13 @@ class DVR_Base(SOperator):
             raise EnvironmentError("This operator can be executed only inside Davinci Resolve with "
                                    "Python installed and the API configured.")
 
-    def getDrvIdx(self, value, objType, lenght):
+    def getDrvIdx(self, value, objTypeName, lenght):
         """Converts the given value to a integer index and checks that is a valid index for the obj.
         If the index is not valid, the functions raise and error or log a warning.
 
         @param value str: The string that should contain an integer to be converted.
-        @param objType str: The name of the object where the index will be used.
-        @param lenght: The maximum index value that can be accepted in the object.
+        @param objTypeName str: The type name of the object where the index will be used.
+        @param lenght int: The maximum index value that can be accepted in the object.
 
         @return int: The index verified and ready to use.
 
@@ -104,9 +104,9 @@ class DVR_Base(SOperator):
             raise ValueError("The key value must be an integer to use this method.")
         if idx > lenght or idx < 0:
             raise ValueError("{0} index out of range. "
-                             "There are {0} items available.".format(objType, idx))
+                             "There are {0} items available.".format(objTypeName, idx))
         elif idx == 0:
-            logger.warning("The resolve lists for {0} starts at index 1.".format(objType))
+            logger.warning("The resolve lists for {0} starts at index 1.".format(objTypeName))
         return idx
 
 
@@ -1093,7 +1093,8 @@ class DVR_TimelineItemsGet(DVR_Base):
     def _getItemsFromTrack(self, timeline, trackType, trackIdx):
         """Gets the timeline items list for the given track type and index from the given timeline.
 
-        @param timeline DaVinciResolve.Timeline: The timeline object where the clips will be got.
+        @param timeline DaVinciResolve.Timeline: The timeline object from where the clips will be get.
+
         @param trackType str: The track type to read. Must be video, audio or subtitle.
         @param trackIdx int: The index of the track to read the clips from.
 
@@ -1141,7 +1142,7 @@ class DVR_TimelineItemsGet(DVR_Base):
             if not items:
                 logger.warning("Track name not found or the track is empty.")
         else:
-            raise ValueError("Get method '{0}' not reconized.".format(getMethod))
+            raise ValueError("Get method '{0}' not recognised.".format(getMethod))
 
         self.getPlug("items", SDirection.kOut).setValue(items)
         super(self.__class__, self).execute()
