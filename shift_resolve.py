@@ -111,7 +111,9 @@ class DVR_Base(SOperator):
 
 
 class DVR_MetadataSet(DVR_Base):
-    """Operator to edit the metadata of a given clip.
+    """Operator to edit the metadata of a given clip. You can create custom plugs to set different
+    metadata field in the given clip. The name of each custom plug will be used like the metadata field name,
+    and the value of the plug like the value of the metadata to set fot that field.
     Works in Davinci Resolve.
 
     """
