@@ -408,7 +408,8 @@ class DVR_TimelineGet(DVR_Base):
 
 class DVR_TimelineItemGet(DVR_Base):
     """Operator to get a timeline item object from a given list of items.
-    You can search for a specific clip with a specific name. With the nameSource property
+    You can search for a specific clip with a specific name. With the nameSource input
+
     you can choose to check the name from the timeline item or the name from the media pool item (clip).
     The operator returns the timeline item object (item) and the media pool item (clip).
     Works in Davinci Resolve.
