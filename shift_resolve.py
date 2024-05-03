@@ -481,7 +481,8 @@ class DVR_TimelineItemGet(DVR_Base):
                     continue
                 itemName = mediaPoolItemObj.GetClipProperty("Clip Name")
             else:
-                raise ValueError("Name source object not recognized.")
+                raise ValueError("Name source {0} is nor valid. Please choose between 'TimelineItem' or 'MediaPoolClip'.".format(nameSource))
+
             if itemName != inName:
                 continue
             resultItem = item
