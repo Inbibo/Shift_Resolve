@@ -317,7 +317,8 @@ class DVR_TimelineExport(DVR_Base):
                 result = timeline.Export(filepath, timelineType.get("type"))
         except Exception as e:
             logger.error(e)
-            raise RuntimeError("Timeline export process have fail.")
+            raise RuntimeError("Timeline export process has fail.")
+
         self.getPlug("result", SDirection.kOut).setValue(result)
         super(self.__class__, self).execute()
 
