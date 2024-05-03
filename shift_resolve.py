@@ -392,7 +392,8 @@ class DVR_TimelineGet(DVR_Base):
             try:
                 timeline = project.GetTimelineByIndex(timeIdx)
             except Exception as e:
-                raise RuntimeError("The current timeline could not be get.")
+                raise RuntimeError("The timeline at index {0} could not be get.".format(timeIdx)
+
         elif getMethod == "Current":
             try:
                 timeline = project.GetCurrentTimeline()
