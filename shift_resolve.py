@@ -183,9 +183,16 @@ class DVR_ProjectExport(DVR_Base):
             type=SType.kFileOut,
             direction=SDirection.kIn,
             parent=self)
+        o_filepath = SPlug(
+            code="filepath",
+            value="",
+            type=SType.kFileOut,
+            direction=SDirection.kOut,
+            parent=self)
 
         self.addPlug(i_project)
         self.addPlug(i_filepath)
+        self.addPlug(o_filepath)
 
     def execute(self, force=False):
         """Exports a given Resolve project in the Resolve project files format.
@@ -208,7 +215,7 @@ class DVR_ProjectExport(DVR_Base):
             result = False
         if not result:
             raise RuntimeError("The project couldn't be exported:  \n  {0}".format(msg))
-
+        self.getPlug("filepath", SDirection.kOut).setValue(filepath)
         super(self.__class__, self).execute()
 
 
