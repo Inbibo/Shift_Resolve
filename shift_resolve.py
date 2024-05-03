@@ -101,7 +101,7 @@ class DVR_Base(SOperator):
         try:
             idx = int(value)
         except Exception as e:
-            raise ValueError("The key value must be an integer to use this method.")
+            raise ValueError("The key value cannot be converted into a valid index as it is not an integer.")
         if idx > lenght or idx < 0:
             raise ValueError("{0} index out of range. "
                              "There are {0} items available.".format(objTypeName, idx))
