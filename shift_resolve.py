@@ -604,7 +604,8 @@ class DVR_TimelineItemsGet(DVR_Base):
             if not items:
                 logger.warning("Track name not found or the track is empty.")
         else:
-            raise ValueError("Get method '{0}' not recognised.".format(getMethod))
+            raise ValueError("Get method '{0}' is not valid. Please choose between 'ByTrackIdx', 'ByTrackName' or 'All'.".format(getMethod))
+
 
         self.getPlug("items", SDirection.kOut).setValue(items)
         super(self.__class__, self).execute()
