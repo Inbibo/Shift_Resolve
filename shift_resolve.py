@@ -195,7 +195,7 @@ class DVR_ProjectExport(DVR_Base):
         self.addPlug(o_result)
 
     def execute(self, force=False):
-        """Returns the current project from Davinci Resolve.
+        """Exports a given Resolve project in the Resolve project files format.
 
         @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
 
