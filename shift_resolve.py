@@ -638,7 +638,7 @@ class DVR_TimelineNameGet(DVR_Base):
 
         # Check the input values
         if timeline is None:
-            raise ValueError("A Timeline object is required to execute the export")
+            raise ValueError("A Timeline object is required to get the name from.")
 
         # Export the timeline
         try:
@@ -692,7 +692,7 @@ class DVR_TimelineNameSet(DVR_Base):
         name = self.getPlug("name", SDirection.kIn).value
         # Check the input values
         if timeline is None:
-            raise ValueError("A Timeline object is required to execute the export")
+            raise ValueError("A Timeline object is required to set the name.")
 
         # Export the timeline
         try:
