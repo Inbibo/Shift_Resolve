@@ -565,8 +565,7 @@ class DVR_TimelineItemsGet(DVR_Base):
         try:
             items = timeline.GetItemListInTrack(trackType, trackIdx)
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The clips could not be read from the timeline.")
+            raise RuntimeError("The clips could not be read from the timeline: \n{0}".format(str(e)))
         return items
 
 
@@ -652,8 +651,7 @@ class DVR_TimelineNameGet(DVR_Base):
         try:
             name = timeline.GetName()
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The timeline name could not be get.")
+            raise RuntimeError("The timeline name could not be get: \n{0}".format(str(e)))
         self.getPlug("name", SDirection.kOut).setValue(name)
         super(self.__class__, self).execute()
 
