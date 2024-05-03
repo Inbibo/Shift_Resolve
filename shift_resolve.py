@@ -163,7 +163,7 @@ class DVR_MetadataSet(DVR_Base):
 
 
 class DVR_ProjectExport(DVR_Base):
-    """Operator to get the current Resolve project object.
+    """Operator to get export a given Resolve project in a Davinci Resolve Project file (.drp).
     Works in Davinci Resolve.
 
     """
