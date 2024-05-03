@@ -712,7 +712,7 @@ class DVR_TimelineNameSet(DVR_Base):
             raise RuntimeError("The timeline name could not be set:  \n  {0}".format(msg))
         super(self.__class__, self).execute()
 
-
+# TODO Issue #5 - Define Resolve DCC, create a Resolve method to launch Shift, ...
 catalog = {
     "Description": "A catalog to use Davinci Resolve in Shift. "
                    "You can use the operators from this catalog to read, modify and export media, clips and "
