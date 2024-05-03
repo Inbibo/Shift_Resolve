@@ -248,7 +248,8 @@ class DVR_ProjectGet(DVR_Base):
 
 class DVR_TimelineExport(DVR_Base):
     """Operator to export a Davinci Resolve Timeline object.
-    You can select a specific file format for the export or set Auto to get the format from the filepath extension.
+    Select the desired timeline format to export and provide a file path to save it with the correct extension for that
+    format. Is the extension is not correct the operator will raise and error and suggest the correct extension.
     Works in Davinci Resolve.
 
     """
