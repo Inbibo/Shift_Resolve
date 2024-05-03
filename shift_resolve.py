@@ -126,15 +126,8 @@ class DVR_MetadataSet(DVR_Base):
             type=SType.kInstance,
             direction=SDirection.kIn,
             parent=self)
-        o_result = SPlug(
-            code="result",
-            value=False,
-            type=SType.kBool,
-            direction=SDirection.kOut,
-            parent=self)
 
         self.addPlug(i_clip)
-        self.addPlug(o_result)
 
     def execute(self, force=False):
         """Edit the metadata for the given clip using each custom input plugs like fields to edit.
@@ -147,18 +140,25 @@ class DVR_MetadataSet(DVR_Base):
         plugsList = self.getPlugs(SDirection.kIn)
         clip = self.getPlug("clip").value
         result = True
+        msg = ""
+        errorPlugs = []
         if len(plugsList) > 2:
             for p in plugsList:
                 if not p.type is SType.kTrigger and p.code != "clip":
                     try:
                         resAux = clip.SetMetadata(p.code, p.value)
-                        if result:
-                            result = resAux  # Only edit the result if it's True for now
                     except Exception as e:
-                        result = False
-                        logger.warning("The metadata of type '{0}' could not be set.".format(p.code))
+                        msg += "\n " + str(e)
+                        resAux = False
+                    if result:
+                        result = resAux  # Only edit the result if it's True for now
+                    if not resAux:
+                        errorPlugs.append(p.code)
 
-        self.getPlug("result", SDirection.kOut).setValue(result)
+        if not result:
+            raise RuntimeError("The metadata of the attributes '{0}' "
+                               "could not be set:  \n  {1}".format(str(errorPlugs), msg))
+
         super(self.__class__, self).execute()
 
 
@@ -183,16 +183,9 @@ class DVR_ProjectExport(DVR_Base):
             type=SType.kFileOut,
             direction=SDirection.kIn,
             parent=self)
-        o_result = SPlug(
-            code="result",
-            value=False,
-            type=SType.kBool,
-            direction=SDirection.kOut,
-            parent=self)
 
         self.addPlug(i_project)
         self.addPlug(i_filepath)
-        self.addPlug(o_result)
 
     def execute(self, force=False):
         """Exports a given Resolve project in the Resolve project files format.
@@ -207,12 +200,15 @@ class DVR_ProjectExport(DVR_Base):
             raise ValueError("A Davinci Resolve project is required to export.")
         if not filepath or not filepath.endswith(".drp"):
             raise ValueError("A filepath for a .drp file is required to export the project.")
+        msg = ""
         try:
             result = projectManager.ExportProject(project.GetName(), filepath)
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The project couldn't be exported. Check the log for more information.")
-        self.getPlug("result", SDirection.kOut).setValue(result)
+            msg = str(e)
+            result = False
+        if not result:
+            raise RuntimeError("The project couldn't be exported:  \n  {0}".format(msg))
+
         super(self.__class__, self).execute()
 
 
@@ -275,17 +271,17 @@ class DVR_TimelineExport(DVR_Base):
             options=list(self.timelineTypes.keys()),  # Get the format types from the class constant
             direction=SDirection.kIn,
             parent=self)
-        o_result = SPlug(
-            code="result",
-            value=False,
-            type=SType.kBool,
+        o_filepath = SPlug(
+            code="filepath",
+            value="",
+            type=SType.kFileOut,
             direction=SDirection.kOut,
             parent=self)
 
         self.addPlug(i_timeline)
         self.addPlug(i_filepath)
         self.addPlug(i_format)
-        self.addPlug(o_result)
+        self.addPlug(o_filepath)
 
     def execute(self, force=False):
         """Export the given timeline in the given format from Resolve.
@@ -310,16 +306,19 @@ class DVR_TimelineExport(DVR_Base):
                 filepath.rpartition(".")[2]
             ))
         # Export the timeline
+        msg = ""
         try:
             if type(timelineType.get("type")) is list:
                 result = timeline.Export(filepath, timelineType.get("type")[0], timelineType.get("type")[1])
             else:
                 result = timeline.Export(filepath, timelineType.get("type"))
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("Timeline export process has fail.")
+            msg = str(e)
+            result = False
 
-        self.getPlug("result", SDirection.kOut).setValue(result)
+        if not result:
+            raise RuntimeError("Timeline export process has fail:  \n {0}".format(msg))
+        self.getPlug("filepath", SDirection.kOut).setValue(filepath)
         super(self.__class__, self).execute()
 
 
@@ -660,7 +659,7 @@ class DVR_TimelineNameGet(DVR_Base):
 
 
 class DVR_TimelineNameSet(DVR_Base):
-    """Operator to get the name of a timeline.
+    """Operator to set the name of a timeline.
     Works in Davinci Resolve.
 
     """
@@ -679,16 +678,9 @@ class DVR_TimelineNameSet(DVR_Base):
             type=SType.kString,
             direction=SDirection.kIn,
             parent=self)
-        o_result = SPlug(
-            code="result",
-            value=False,
-            type=SType.kBool,
-            direction=SDirection.kOut,
-            parent=self)
 
         self.addPlug(i_timeline)
         self.addPlug(i_name)
-        self.addPlug(o_result)
 
     def execute(self, force=False):
         """Returns the specified timeline obj from Resolve.
@@ -704,12 +696,15 @@ class DVR_TimelineNameSet(DVR_Base):
             raise ValueError("A Timeline object is required to set the name.")
 
         # Export the timeline
+        msg = ""
         try:
             result = timeline.SetName(name)
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The timeline name could not be set.")
-        self.getPlug("result", SDirection.kOut).setValue(result)
+            msg = str(e)
+            result = False
+
+        if not result:
+            raise RuntimeError("The timeline name could not be set:  \n  {0}".format(msg))
         super(self.__class__, self).execute()
 
 
