@@ -878,7 +878,8 @@ class DVR_TimelineSet(DVR_Base):
             raise ValueError("A project entity is required to set the timeline. Got {0}".format(project))
 
         if timeline is None:
-            raise ValueError("A timeline entity is required to set the timeline.")
+            raise ValueError("A timeline entity is required to set the timeline. Got {0}".format(timeline))
+
         msg = ""
         try:
             result = project.SetCurrentTimeline(timeline)
