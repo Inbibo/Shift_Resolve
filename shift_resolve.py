@@ -673,7 +673,6 @@ class DVR_ProjectImport(DVR_Base):
             result = False
         if not result:
             raise RuntimeError("The project couldn't be imported: {0}".format(msg))
-        self.getPlug("result", SDirection.kOut).setValue(result)
         super(self.__class__, self).execute()
 
 
@@ -887,7 +886,6 @@ class DVR_TimelineSet(DVR_Base):
         if not result:
             raise RuntimeError("The current timeline could not be set: \n {0}".format(msg))
 
-        self.getPlug("result", SDirection.kOut).setValue(result)
         super(self.__class__, self).execute()
 
 
