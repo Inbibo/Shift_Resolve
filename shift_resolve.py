@@ -142,7 +142,6 @@ class DVR_MetadataSet(DVR_Base):
 
         plugsList = self.getPlugs(SDirection.kIn)
         clip = self.getPlug("clip").value
-        result = True
         msg = ""
         errorPlugs = []
         if len(plugsList) > 2:
@@ -153,12 +152,10 @@ class DVR_MetadataSet(DVR_Base):
                     except Exception as e:
                         msg += "\n " + str(e)
                         resAux = False
-                    if result:
-                        result = resAux  # Only edit the result if it's True for now
                     if not resAux:
                         errorPlugs.append(p.code)
 
-        if not result:
+        if errorPlugs:
             raise RuntimeError("The metadata of the attributes '{0}' "
                                "could not be set:  \n  {1}".format(str(errorPlugs), msg))
 
