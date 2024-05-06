@@ -178,7 +178,8 @@ class DVR_ClipGet(DVR_Base):
 
 
 class DVR_ClipsGet(DVR_Base):
-    """Operator to get all the clips from a folder.
+    """Operator to get all the clips from a Resolve folder.
+
     Works in Davinci Resolve.
 
     """
