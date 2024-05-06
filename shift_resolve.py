@@ -17,6 +17,22 @@ from shift.core.constants import SDirection
 from shift.core.logger import shiftLogger as logger
 
 
+def getHost():
+    """Method to check the current host. If Davinci Resolve is available the result will be resolve.
+
+    @return str: The name of the Host.
+
+    """
+    host = None
+    try:
+        import DaVinciResolveScript as dvr_script
+        host = "resolve"
+    except:
+        pass
+
+    return host
+
+
 class DVR_Base(SOperator):
     """Base Davinci Resolve Operator class with utility methods."""
     # Define operator constants
@@ -66,22 +82,9 @@ class DVR_Base(SOperator):
             "Tabbed Text": {"suffix": ".txt", "type": None},
         }
 
-    def isDvrAvailable(self):
-        """Method to check if Davinci Resolve is available in the current Env.
-
-        @return bool: True if drv is available, False otherwise.
-
-        """
-        try:
-            import DaVinciResolveScript as dvr_script
-            res = True
-        except:
-            res = False
-        return res
-
     def checkDvr(self):
         """Method that checks if drv module is available and ready to use. If not raises an error."""
-        if not self.isDvrAvailable():
+        if getHost() != "resolve":
             raise EnvironmentError("This operator can be executed only inside Davinci Resolve with "
                                    "Python installed and the API configured.")
 
