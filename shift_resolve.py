@@ -17,6 +17,22 @@ from shift.core.constants import SDirection
 from shift.core.logger import shiftLogger as logger
 
 
+def getHost():
+    """Method to check the current host. If Davinci Resolve is available the result will be resolve.
+
+    @return str: The name of the Host.
+
+    """
+    host = None
+    try:
+        import DaVinciResolveScript as dvr_script
+        host = "resolve"
+    except:
+        pass
+
+    return host
+
+
 class DVR_Base(SOperator):
     """Base Davinci Resolve Operator class with utility methods."""
     # Define operator constants
@@ -66,22 +82,9 @@ class DVR_Base(SOperator):
             "Tabbed Text": {"suffix": ".txt", "type": None},
         }
 
-    def isDvrAvailable(self):
-        """Method to check if Davinci Resolve is available in the current Env.
-
-        @return bool: True if drv is available, False otherwise.
-
-        """
-        try:
-            import DaVinciResolveScript as dvr_script
-            res = True
-        except:
-            res = False
-        return res
-
     def checkDvr(self):
         """Method that checks if drv module is available and ready to use. If not raises an error."""
-        if not self.isDvrAvailable():
+        if getHost() != "resolve":
             raise EnvironmentError("This operator can be executed only inside Davinci Resolve with "
                                    "Python installed and the API configured.")
 
@@ -101,7 +104,7 @@ class DVR_Base(SOperator):
         try:
             idx = int(value)
         except Exception as e:
-            raise ValueError("The key value must be an integer to use this method.")
+            raise ValueError("The key value cannot be converted into a valid index as it is not an integer.")
         if idx > lenght or idx < 0:
             raise ValueError("{0} index out of range. "
                              "There are {0} items available.".format(objTypeName, idx))
@@ -507,7 +510,9 @@ class DVR_MetadataGet(DVR_Base):
 
 
 class DVR_MetadataSet(DVR_Base):
-    """Operator to edit the metadata of a given clip.
+    """Operator to edit the metadata of a given clip. You can create custom plugs to set different
+    metadata field in the given clip. The name of each custom plug will be used like the metadata field name,
+    and the value of the plug like the value of the metadata to set fot that field.
     Works in Davinci Resolve.
 
     """
@@ -520,15 +525,8 @@ class DVR_MetadataSet(DVR_Base):
             type=SType.kInstance,
             direction=SDirection.kIn,
             parent=self)
-        o_result = SPlug(
-            code="result",
-            value=False,
-            type=SType.kBool,
-            direction=SDirection.kOut,
-            parent=self)
 
         self.addPlug(i_clip)
-        self.addPlug(o_result)
 
     def execute(self, force=False):
         """Edit the metadata for the given clip using each custom input plugs like fields to edit.
@@ -541,23 +539,30 @@ class DVR_MetadataSet(DVR_Base):
         plugsList = self.getPlugs(SDirection.kIn)
         clip = self.getPlug("clip").value
         result = True
+        msg = ""
+        errorPlugs = []
         if len(plugsList) > 2:
             for p in plugsList:
                 if not p.type is SType.kTrigger and p.code != "clip":
                     try:
                         resAux = clip.SetMetadata(p.code, p.value)
-                        if result:
-                            result = resAux  # Only edit the result if it's True for now
                     except Exception as e:
-                        result = False
-                        logger.warning("The metadata of type '{0}' could not be set.".format(p.code))
+                        msg += "\n " + str(e)
+                        resAux = False
+                    if result:
+                        result = resAux  # Only edit the result if it's True for now
+                    if not resAux:
+                        errorPlugs.append(p.code)
 
-        self.getPlug("result", SDirection.kOut).setValue(result)
+        if not result:
+            raise RuntimeError("The metadata of the attributes '{0}' "
+                               "could not be set:  \n  {1}".format(str(errorPlugs), msg))
+
         super(self.__class__, self).execute()
 
 
 class DVR_ProjectExport(DVR_Base):
-    """Operator to get the current Resolve project object.
+    """Operator to get export a given Resolve project in a Davinci Resolve Project file (.drp).
     Works in Davinci Resolve.
 
     """
@@ -577,19 +582,19 @@ class DVR_ProjectExport(DVR_Base):
             type=SType.kFileOut,
             direction=SDirection.kIn,
             parent=self)
-        o_result = SPlug(
-            code="result",
-            value=False,
-            type=SType.kBool,
+        o_filepath = SPlug(
+            code="filepath",
+            value="",
+            type=SType.kFileOut,
             direction=SDirection.kOut,
             parent=self)
 
         self.addPlug(i_project)
         self.addPlug(i_filepath)
-        self.addPlug(o_result)
+        self.addPlug(o_filepath)
 
     def execute(self, force=False):
-        """Returns the current project from Davinci Resolve.
+        """Exports a given Resolve project in the Resolve project files format.
 
         @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
 
@@ -601,12 +606,15 @@ class DVR_ProjectExport(DVR_Base):
             raise ValueError("A Davinci Resolve project is required to export.")
         if not filepath or not filepath.endswith(".drp"):
             raise ValueError("A filepath for a .drp file is required to export the project.")
+        msg = ""
         try:
             result = projectManager.ExportProject(project.GetName(), filepath)
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The project couldn't be exported. Check the log for more information.")
-        self.getPlug("result", SDirection.kOut).setValue(result)
+            msg = str(e)
+            result = False
+        if not result:
+            raise RuntimeError("The project couldn't be exported:  \n  {0}".format(msg))
+        self.getPlug("filepath", SDirection.kOut).setValue(filepath)
         super(self.__class__, self).execute()
 
 
@@ -686,7 +694,8 @@ class DVR_ProjectImport(DVR_Base):
 
 class DVR_TimelineExport(DVR_Base):
     """Operator to export a Davinci Resolve Timeline object.
-    You can select a specific file format for the export or set Auto to get the format from the filepath extension.
+    Select the desired timeline format to export and provide a file path to save it with the correct extension for that
+    format. Is the extension is not correct the operator will raise and error and suggest the correct extension.
     Works in Davinci Resolve.
 
     """
@@ -712,17 +721,17 @@ class DVR_TimelineExport(DVR_Base):
             options=list(self.timelineTypes.keys()),  # Get the format types from the class constant
             direction=SDirection.kIn,
             parent=self)
-        o_result = SPlug(
-            code="result",
-            value=False,
-            type=SType.kBool,
+        o_filepath = SPlug(
+            code="filepath",
+            value="",
+            type=SType.kFileOut,
             direction=SDirection.kOut,
             parent=self)
 
         self.addPlug(i_timeline)
         self.addPlug(i_filepath)
         self.addPlug(i_format)
-        self.addPlug(o_result)
+        self.addPlug(o_filepath)
 
     def execute(self, force=False):
         """Export the given timeline in the given format from Resolve.
@@ -747,15 +756,19 @@ class DVR_TimelineExport(DVR_Base):
                 filepath.rpartition(".")[2]
             ))
         # Export the timeline
+        msg = ""
         try:
             if type(timelineType.get("type")) is list:
                 result = timeline.Export(filepath, timelineType.get("type")[0], timelineType.get("type")[1])
             else:
                 result = timeline.Export(filepath, timelineType.get("type"))
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("Timeline export process have fail.")
-        self.getPlug("result", SDirection.kOut).setValue(result)
+            msg = str(e)
+            result = False
+
+        if not result:
+            raise RuntimeError("Timeline export process has fail:  \n {0}".format(msg))
+        self.getPlug("filepath", SDirection.kOut).setValue(filepath)
         super(self.__class__, self).execute()
 
 
@@ -828,7 +841,9 @@ class DVR_TimelineGet(DVR_Base):
             try:
                 timeline = project.GetTimelineByIndex(timeIdx)
             except Exception as e:
-                raise RuntimeError("The current timeline could not be get.")
+                raise RuntimeError("The timeline at index {0} could not be get.".format(timeIdx))
+
+
         elif getMethod == "Current":
             try:
                 timeline = project.GetCurrentTimeline()
@@ -950,7 +965,8 @@ class DVR_TimelineImport(DVR_Base):
 
 class DVR_TimelineItemGet(DVR_Base):
     """Operator to get a timeline item object from a given list of items.
-    You can search for a specific clip with a specific name. With the nameSource property
+    You can search for a specific clip with a specific name. With the nameSource input
+
     you can choose to check the name from the timeline item or the name from the media pool item (clip).
     The operator returns the timeline item object (item) and the media pool item (clip).
     Works in Davinci Resolve.
@@ -1022,7 +1038,8 @@ class DVR_TimelineItemGet(DVR_Base):
                     continue
                 itemName = mediaPoolItemObj.GetClipProperty("Clip Name")
             else:
-                raise ValueError("Name source object not recognized.")
+                raise ValueError("Name source {0} is nor valid. Please choose between 'TimelineItem' or 'MediaPoolClip'.".format(nameSource))
+
             if itemName != inName:
                 continue
             resultItem = item
@@ -1106,8 +1123,7 @@ class DVR_TimelineItemsGet(DVR_Base):
         try:
             items = timeline.GetItemListInTrack(trackType, trackIdx)
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The clips could not be read from the timeline.")
+            raise RuntimeError("The clips could not be read from the timeline: \n{0}".format(str(e)))
         return items
 
 
@@ -1144,7 +1160,8 @@ class DVR_TimelineItemsGet(DVR_Base):
             if not items:
                 logger.warning("Track name not found or the track is empty.")
         else:
-            raise ValueError("Get method '{0}' not recognised.".format(getMethod))
+            raise ValueError("Get method '{0}' is not valid. Please choose between 'ByTrackIdx', 'ByTrackName' or 'All'.".format(getMethod))
+
 
         self.getPlug("items", SDirection.kOut).setValue(items)
         super(self.__class__, self).execute()
@@ -1186,20 +1203,19 @@ class DVR_TimelineNameGet(DVR_Base):
 
         # Check the input values
         if timeline is None:
-            raise ValueError("A Timeline object is required to execute the export")
+            raise ValueError("A Timeline object is required to get the name from.")
 
         # Export the timeline
         try:
             name = timeline.GetName()
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The timeline name could not be get.")
+            raise RuntimeError("The timeline name could not be get: \n{0}".format(str(e)))
         self.getPlug("name", SDirection.kOut).setValue(name)
         super(self.__class__, self).execute()
 
 
 class DVR_TimelineNameSet(DVR_Base):
-    """Operator to get the name of a timeline.
+    """Operator to set the name of a timeline.
     Works in Davinci Resolve.
 
     """
@@ -1218,16 +1234,9 @@ class DVR_TimelineNameSet(DVR_Base):
             type=SType.kString,
             direction=SDirection.kIn,
             parent=self)
-        o_result = SPlug(
-            code="result",
-            value=False,
-            type=SType.kBool,
-            direction=SDirection.kOut,
-            parent=self)
 
         self.addPlug(i_timeline)
         self.addPlug(i_name)
-        self.addPlug(o_result)
 
     def execute(self, force=False):
         """Returns the specified timeline obj from Resolve.
@@ -1240,18 +1249,21 @@ class DVR_TimelineNameSet(DVR_Base):
         name = self.getPlug("name", SDirection.kIn).value
         # Check the input values
         if timeline is None:
-            raise ValueError("A Timeline object is required to execute the export")
+            raise ValueError("A Timeline object is required to set the name.")
 
         # Export the timeline
+        msg = ""
         try:
             result = timeline.SetName(name)
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The timeline name could not be set.")
-        self.getPlug("result", SDirection.kOut).setValue(result)
+            msg = str(e)
+            result = False
+
+        if not result:
+            raise RuntimeError("The timeline name could not be set:  \n  {0}".format(msg))
         super(self.__class__, self).execute()
 
-
+# TODO Issue #5 - Define Resolve DCC, create a Resolve method to launch Shift, ...
 catalog = {
     "Description": "A catalog to use Davinci Resolve in Shift. "
                    "You can use the operators from this catalog to read, modify and export media, clips and "
