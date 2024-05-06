@@ -875,7 +875,8 @@ class DVR_TimelineSet(DVR_Base):
         timeline = self.getPlug("timeline", SDirection.kIn).value
 
         if project is None:
-            raise ValueError("A project entity is required to set the timeline.")
+            raise ValueError("A project entity is required to set the timeline. Got {0}".format(project))
+
         if timeline is None:
             raise ValueError("A timeline entity is required to set the timeline.")
         msg = ""
