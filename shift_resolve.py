@@ -430,16 +430,9 @@ class DVR_FolderSet(DVR_Base):
             type=SType.kInstance,
             direction=SDirection.kIn,
             parent=self)
-        o_result = SPlug(
-            code="result",
-            value=False,
-            type=SType.kBool,
-            direction=SDirection.kOut,
-            parent=self)
 
         self.addPlug(i_project)
         self.addPlug(i_folder)
-        self.addPlug(o_result)
 
     def execute(self, force=False):
         """Sets the current active folder in the media pool of the project.
@@ -454,13 +447,15 @@ class DVR_FolderSet(DVR_Base):
             raise ValueError("A folder object is needed to create the subFolder inside.")
         if project is None:
             raise ValueError("A project object is needed to create the folder.")
+        msg = ""
         try:
             result = project.GetMediaPool().SetCurrentFolder(folder)
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The folder couldn't be set as active. Check the log for more info.")
+            msg = str(e)
+            result = False
+        if not result:
+            raise RuntimeError("The folder couldn't be set as active: {0}".format(msg))
 
-        self.getPlug("result", SDirection.kOut).setValue(result)
         super(self.__class__, self).execute()
 
 
@@ -663,15 +658,8 @@ class DVR_ProjectImport(DVR_Base):
             type=SType.kFileIn,
             direction=SDirection.kIn,
             parent=self)
-        o_result = SPlug(
-            code="result",
-            value=False,
-            type=SType.kBool,
-            direction=SDirection.kOut,
-            parent=self)
 
         self.addPlug(i_filepath)
-        self.addPlug(o_result)
 
     def execute(self, force=False):
         """Imports a given project in Davinci Resolve.
@@ -683,11 +671,14 @@ class DVR_ProjectImport(DVR_Base):
         filepath = self.getPlug("filepath", SDirection.kIn).value
         if not filepath or not filepath.endswith(".drp"):
             raise ValueError("The filepath to the project have to be a .drp format.")
+        msg = ""
         try:
             result = projectManager.ImportProject(filepath)
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The project couldn't be imported. Check the log for more information.")
+            msg = str(e)
+            result = False
+        if not result:
+            raise RuntimeError("The project couldn't be imported: {0}".format(msg))
         self.getPlug("result", SDirection.kOut).setValue(result)
         super(self.__class__, self).execute()
 
@@ -875,16 +866,9 @@ class DVR_TimelineSet(DVR_Base):
             type=SType.kInstance,
             direction=SDirection.kIn,
             parent=self)
-        o_result = SPlug(
-            code="result",
-            value=False,
-            type=SType.kBool,
-            direction=SDirection.kOut,
-            parent=self)
 
         self.addPlug(i_project)
         self.addPlug(i_timeline)
-        self.addPlug(o_result)
 
     def execute(self, force=False):
         """Set the given timeline like current timeline in the project.
@@ -900,10 +884,14 @@ class DVR_TimelineSet(DVR_Base):
             raise ValueError("A project entity is required to set the timeline.")
         if timeline is None:
             raise ValueError("A timeline entity is required to set the timeline.")
+        msg = ""
         try:
             result = project.SetCurrentTimeline(timeline)
         except Exception as e:
-            raise RuntimeError("The current timeline could not be set.")
+            msg = str(e)
+            result = False
+        if not result:
+            raise RuntimeError("The current timeline could not be set: \n {0}".format(msg))
 
         self.getPlug("result", SDirection.kOut).setValue(result)
         super(self.__class__, self).execute()
@@ -957,8 +945,7 @@ class DVR_TimelineImport(DVR_Base):
         try:
             timeline = project.GetMediaPool().ImportTimelineFromFile(filepath)
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("Timeline import process has failed.")
+            raise RuntimeError("Timeline import process has failed: {0}".format(str(e)))
         self.getPlug("timeline", SDirection.kOut).setValue(timeline)
         super(self.__class__, self).execute()
 
