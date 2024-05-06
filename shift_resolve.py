@@ -874,9 +874,11 @@ class DVR_TimelineSet(DVR_Base):
         timeline = self.getPlug("timeline", SDirection.kIn).value
 
         if project is None:
-            raise ValueError("A project entity is required to set the timeline.")
+            raise ValueError("A project entity is required to set the timeline. Got {0}".format(project))
+
         if timeline is None:
-            raise ValueError("A timeline entity is required to set the timeline.")
+            raise ValueError("A timeline entity is required to set the timeline. Got {0}".format(timeline))
+
         msg = ""
         try:
             result = project.SetCurrentTimeline(timeline)
@@ -929,10 +931,11 @@ class DVR_TimelineImport(DVR_Base):
         self.checkDvr()
         project = self.getPlug("project", SDirection.kIn).value
         filepath = self.getPlug("filepath", SDirection.kIn).value
-        if not filepath:
-            raise ValueError("A filepath to a timeline file is required.")
+        if not os.path.isfile(filepath):
+            raise ValueError("A valid filepath to a timeline file is required. Got {0}".format(filepath))
         if project is None:
-            raise ValueError("A project entity is required to import the timeline.")
+            raise ValueError("A valid project instance is required to import the timeline. Got {0}".format(project))
+
         # Export the timeline
         try:
             timeline = project.GetMediaPool().ImportTimelineFromFile(filepath)
