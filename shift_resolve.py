@@ -214,8 +214,7 @@ class DVR_ClipsGet(DVR_Base):
         try:
             clips = folder.GetClipList()
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The clips couldn't be get from the folder. Check the log for more info.")
+            raise RuntimeError("The clips couldn't be get from the folder: \n {0}".format(str(e)))
 
         self.getPlug("clips", SDirection.kOut).setValue(clips)
         super(self.__class__, self).execute()
@@ -276,8 +275,7 @@ class DVR_FolderAdd(DVR_Base):
         try:
             folder = project.GetMediaPool().AddSubFolder(currentFolder, folderName)
         except Exception as e:
-            logger.error(e)
-            raise RuntimeError("The folder couldn't be created. Check the log for more info.")
+            raise RuntimeError("The folder couldn't be created: \n {0}".format(str(e)))
 
         self.getPlug("folder", SDirection.kOut).setValue(folder)
         super(self.__class__, self).execute()
@@ -398,9 +396,8 @@ class DVR_FolderGet(DVR_Base):
                 folder = self._recursiveFolderResearch(
                     mediapool.GetRootFolder(), "", inputFolderPath, mediapool, createFolders=createFolders)
             except Exception as e:
-                logger.error(e)
                 raise RuntimeError("The folder couldn't be found using the FullPath get method. "
-                                   "Check that the Folder path is correct.")
+                                   "Check that the Folder path is correct: \n {0}".format(str(e)))
             # TODO END ------------------------
         else:
             raise ValueError("GetMethod value not recognised.")
