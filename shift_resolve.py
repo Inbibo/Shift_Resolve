@@ -341,6 +341,7 @@ class DVR_FolderGet(DVR_Base):
         @param currentFolder Resolve.Folder: The current folder to check the subFolders from.
         @param currentPath str: The current status of the path that is being research.
         @param targetPath str: The target result of the path. The full folder path to get.
+        @param mediapool Resolve.MediaPool: The media pool object from the Resolve API.
         @param createFolders bool: If it's true, any not found folder, will be created. (Default=False)
 
         @returns Resolve.Folder: The Folder that match the targetPath.
