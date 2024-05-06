@@ -389,9 +389,6 @@ class DVR_FolderGet(DVR_Base):
         elif getMethod == "FullPath":
             if not folderPath:
                 raise ValueError("A folder path is required to use the FullPath get method.")
-            # TODO START ----------------------
-            #  Remove all this section by a proper resolve API function when the Resolve programmers
-            #  allows us to get a folder by name :)
             folderPath = folderPath.replace("\\", "/")
             inputFolderPath = folderPath if folderPath.endswith("/") else folderPath + "/"
             try:
@@ -400,7 +397,6 @@ class DVR_FolderGet(DVR_Base):
             except Exception as e:
                 raise RuntimeError("The folder couldn't be found using the FullPath get method. "
                                    "Check that the Folder path is correct: \n {0}".format(str(e)))
-            # TODO END ------------------------
         else:
             raise ValueError("GetMethod value not recognised.")
 
@@ -485,20 +481,18 @@ class DVR_MetadataGet(DVR_Base):
         """
         self.checkDvr()
 
-        plugsList = self.getPlugs(SDirection.kOut)
+        plugsList = [plug for plug in self.getPlugs(SDirection.kOut) if plug.type != SType.kTrigger]
         clip = self.getPlug("clip").value
         if clip is None:
             raise ValueError("A clip object is needed to read the metadata from.")
-        result = True
-        if len(plugsList) > 1:
+        if plugsList:
             for p in plugsList:
-                if p.type is not SType.kTrigger:
-                    try:
-                        fieldValue = clip.GetMetadata(p.code)
-                        if result:
-                            p.setValue(fieldValue)
-                    except Exception as e:
-                        logger.warning("The metadata of type '{0}' could not be get.".format(p.code))
+                try:
+                    fieldValue = clip.GetMetadata(p.code)
+                    if fieldValue:
+                        p.setValue(fieldValue)
+                except Exception as e:
+                    logger.warning("The metadata of type '{0}' could not be read.".format(p.code))
 
         super(self.__class__, self).execute()
 
