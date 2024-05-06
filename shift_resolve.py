@@ -223,7 +223,8 @@ class DVR_ClipsGet(DVR_Base):
 
 
 class DVR_FolderAdd(DVR_Base):
-    """Operator to create a folder inside other folder with the given name.
+    """Operator to create a folder inside other folder with the given name in Resolve.
+
     Works in Davinci Resolve.
 
     """
