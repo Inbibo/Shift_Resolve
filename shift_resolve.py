@@ -211,7 +211,8 @@ class DVR_ClipsGet(DVR_Base):
         self.checkDvr()
         folder = self.getPlug("folder", SDirection.kIn).value
         if folder is None:
-            raise ValueError("A folder object is needed to return the clips of inside.")
+            raise ValueError("A folder object is needed to retrieve the clips.")
+
         try:
             clips = folder.GetClipList()
         except Exception as e:
