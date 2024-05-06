@@ -460,8 +460,8 @@ class DVR_FolderSet(DVR_Base):
 
 class DVR_MetadataGet(DVR_Base):
     """Operator to get the metadata of a given clip of the Media Pool.
-    Uses the output plugs names like field of the metadata to read. Add the custom plugs in the output direction
-    that should be read from the metadata of the given clip.
+    Allows the creation of new plugs. It will pick output plug names like field of the metadata to be read from the given clip and will store the obtained value inside them. Custom input plugs will be ignored.
+
     Works in Davinci Resolve.
 
     """
