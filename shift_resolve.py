@@ -1,4 +1,9 @@
-import os
+from shift.core.workflow import SOperator
+from shift.core.workflow import SPlug
+from shift.core.constants import SType
+from shift.core.constants import SDirection
+from shift.core.logger import shiftLogger as logger
+
 try:
     import DaVinciResolveScript as dvr_script
 
@@ -9,12 +14,8 @@ except:
     dvr_script = None
     resolve = None
     projectManager = None
-
-from shift.core.workflow import SOperator
-from shift.core.workflow import SPlug
-from shift.core.constants import SType
-from shift.core.constants import SDirection
-from shift.core.logger import shiftLogger as logger
+    logger.warning("The DaVinciResolveScript API could not be imported during the loading of 'shift_resolve' catalog. "
+                   "You won't be able to execute the operators from this catalog.")
 
 
 def getHost():
