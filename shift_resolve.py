@@ -172,7 +172,8 @@ class DVR_ClipGet(DVR_Base):
                     targetClip = clip
                     break
         else:
-            raise ValueError("Not recognized get method.")
+            raise ValueError("Get Method '{0}' is not supported. Please choose between: "
+                             "'ByName'.".format(getMethod))
 
         self.getPlug("clip", SDirection.kOut).setValue(targetClip)
         super(self.__class__, self).execute()
@@ -400,7 +401,8 @@ class DVR_FolderGet(DVR_Base):
                 raise RuntimeError("The folder couldn't be found using the FullPath get method. "
                                    "Check that the Folder path is correct: \n {0}".format(str(e)))
         else:
-            raise ValueError("GetMethod value not recognised.")
+            raise ValueError("Get Method '{0}' is not supported. Please choose between: "
+                             "'Current', 'Root', 'FullPath'.".format(getMethod))
 
 
         self.getPlug("folder", SDirection.kOut).setValue(folder)
@@ -824,15 +826,14 @@ class DVR_TimelineGet(DVR_Base):
                 timeline = project.GetTimelineByIndex(timeIdx)
             except Exception as e:
                 raise RuntimeError("The timeline at index {0} could not be get.".format(timeIdx))
-
-
         elif getMethod == "Current":
             try:
                 timeline = project.GetCurrentTimeline()
             except Exception as e:
                 raise RuntimeError("The current timeline could not be get.")
         else:
-            raise ValueError("Get Method '{0}' is not supported".format(getMethod))
+            raise ValueError("Get Method '{0}' is not supported. Please choose between: "
+                             "'ByName', 'ByIndex', 'Current'.".format(getMethod))
         self.getPlug("timeline", SDirection.kOut).setValue(timeline)
         super(self.__class__, self).execute()
 
@@ -1140,7 +1141,8 @@ class DVR_TimelineItemsGet(DVR_Base):
             if not items:
                 logger.warning("Track name not found or the track is empty.")
         else:
-            raise ValueError("Get method '{0}' is not valid. Please choose between 'ByTrackIdx', 'ByTrackName' or 'All'.".format(getMethod))
+            raise ValueError("Get method '{0}' is not valid. Please choose between "
+                             "'ByTrackIdx', 'ByTrackName' or 'All'.".format(getMethod))
 
 
         self.getPlug("items", SDirection.kOut).setValue(items)
