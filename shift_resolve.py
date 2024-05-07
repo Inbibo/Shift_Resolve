@@ -14,7 +14,7 @@ except:
     dvr_script = None
     resolve = None
     projectManager = None
-    logger.warning("The DaVinciResolveScript API could not be imported. "
+    logger.warning("The DaVinciResolveScript API could not be imported during the loading of 'shift_resolve' catalog. "
                    "You won't be able to execute the operators from this catalog.")
 
 
