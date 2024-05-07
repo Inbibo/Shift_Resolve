@@ -114,6 +114,393 @@ class DVR_Base(SOperator):
         return idx
 
 
+class DVR_ClipGet(DVR_Base):
+    """Operator to get a specific Clip from a list of Clips
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_clips = SPlug(
+            code="clips",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_getMethod = SPlug(
+            code="getMethod",
+            value="ByName",
+            type=SType.kEnum,
+            options=["ByName"],
+            direction=SDirection.kIn,
+            parent=self)
+        i_key = SPlug(
+            code="key",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        o_clip = SPlug(
+            code="clip",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_clips)
+        self.addPlug(i_getMethod)
+        self.addPlug(i_key)
+        self.addPlug(o_clip)
+
+    def execute(self, force=False):
+        """Gets the desired clip from a list of clips.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        clips = self.getPlug("clips", SDirection.kIn).value
+        getMethod = self.getPlug("getMethod", SDirection.kIn).value
+        clipKey = self.getPlug("key", SDirection.kIn).value
+        targetClip = None
+        if clips is None:
+            raise ValueError("A clip list is required to get an specific clip.")
+        if getMethod == "ByName":
+            for clip in clips:
+                if clip.GetClipProperty("Clip Name") == clipKey:
+                    targetClip = clip
+                    break
+        else:
+            raise ValueError("Get Method '{0}' is not supported. Please choose between: "
+                             "'ByName'.".format(getMethod))
+
+        self.getPlug("clip", SDirection.kOut).setValue(targetClip)
+        super(self.__class__, self).execute()
+
+
+class DVR_ClipsGet(DVR_Base):
+    """Operator to get all the clips from a Resolve folder.
+
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        o_clips = SPlug(
+            code="clips",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_folder)
+        self.addPlug(o_clips)
+
+    def execute(self, force=False):
+        """Gets the list of clips from the given folder.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        folder = self.getPlug("folder", SDirection.kIn).value
+        if folder is None:
+            raise ValueError("A folder object is needed to retrieve the clips.")
+
+        try:
+            clips = folder.GetClipList()
+        except Exception as e:
+            raise RuntimeError("The clips couldn't be get from the folder: \n {0}".format(str(e)))
+
+        self.getPlug("clips", SDirection.kOut).setValue(clips)
+        super(self.__class__, self).execute()
+
+
+class DVR_FolderAdd(DVR_Base):
+    """Operator to create a folder inside other folder with the given name in Resolve.
+
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_project = SPlug(
+            code="project",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_name = SPlug(
+            code="name",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        o_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_project)
+        self.addPlug(i_folder)
+        self.addPlug(i_name)
+        self.addPlug(o_folder)
+
+    def execute(self, force=False):
+        """Add a new subFolder in the given folder with the given name.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        currentFolder = self.getPlug("folder", SDirection.kIn).value
+        folderName = self.getPlug("name", SDirection.kIn).value
+        project = self.getPlug("project", SDirection.kIn).value
+        if currentFolder is None:
+            raise ValueError("A folder object is needed to create the subFolder inside.")
+        if project is None:
+            raise ValueError("A project object is needed to create the folder.")
+        try:
+            folder = project.GetMediaPool().AddSubFolder(currentFolder, folderName)
+        except Exception as e:
+            raise RuntimeError("The folder couldn't be created: \n {0}".format(str(e)))
+
+        self.getPlug("folder", SDirection.kOut).setValue(folder)
+        super(self.__class__, self).execute()
+
+
+class DVR_FolderGet(DVR_Base):
+    """Operator to get a Folder from the media pool of the project.
+    Select the getMethod to return the current active folder, the root folder or a specific folder
+    by a full path to the folder.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_project = SPlug(
+            code="project",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_getMethod = SPlug(
+            code="getMethod",
+            value="Current",
+            type=SType.kEnum,
+            options=["Current", "Root", "FullPath"],
+            direction=SDirection.kIn,
+            parent=self)
+        i_folderPath = SPlug(
+            code="folderPath",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        i_createFolders = SPlug(
+            code="createFolders",
+            value=False,
+            type=SType.kBool,
+            direction=SDirection.kIn,
+            parent=self)
+        o_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_project)
+        self.addPlug(i_getMethod)
+        self.addPlug(i_folderPath)
+        self.addPlug(i_createFolders)
+        self.addPlug(o_folder)
+
+    def _recursiveFolderResearch(self, currentFolder, currentPath, targetPath, mediapool, createFolders=False):
+        """Recursive function to find a folder object based in the full path of the folder.
+        The Resolve API doesn't allow to get a folder by name or full path, only allows to get the
+        root, current and subfolders. Because of this, this function is a utility to research over a given folder and subfolders
+        to be able to return a folder given a full path from the root folder.
+
+        @param currentFolder Resolve.Folder: The current folder to check the subFolders from.
+        @param currentPath str: The current status of the path that is being research.
+        @param targetPath str: The target result of the path. The full folder path to get.
+        @param mediapool Resolve.MediaPool: The media pool object from the Resolve API.
+        @param createFolders bool: If it's true, any not found folder, will be created. (Default=False)
+
+        @returns Resolve.Folder: The Folder that match the targetPath.
+
+        """
+        subFolders = currentFolder.GetSubFolderList()
+        for subFolder in subFolders:
+            subFolderName = subFolder.GetName()
+            pathCheck = currentPath + "{0}/".format(subFolderName)
+            if pathCheck == targetPath:
+                return subFolder  # Here we end the recursion
+            elif targetPath.startswith(pathCheck):
+                # The folder is correct, but we still need another recursion level at least
+                return self._recursiveFolderResearch(subFolder, pathCheck, targetPath, mediapool, createFolders=createFolders)
+        if createFolders:
+            newFolderName = targetPath.replace(currentPath, "").partition("/")[0]
+            subFolder = mediapool.AddSubFolder(currentFolder, newFolderName)
+            subFolderName = subFolder.GetName()
+            pathCheck = currentPath + "{0}/".format(subFolderName)
+            if pathCheck == targetPath:
+                return subFolder  # Here we end the recursion
+            elif targetPath.startswith(pathCheck):
+                # The folder is correct, but we still need another recursion level at least
+                return self._recursiveFolderResearch(subFolder, pathCheck, targetPath, mediapool,
+                                                     createFolders=createFolders)
+        return  # If we go to this return means that the folder haven't been found.
+
+    def execute(self, force=False):
+        """Gets the requested folder object from the media pool.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        project = self.getPlug("project").value
+        getMethod = self.getPlug("getMethod").value
+        folderPath = self.getPlug("folderPath").value
+        createFolders = self.getPlug("createFolders").value
+        if project is None:
+            raise ValueError("A project object is needed to get the folder from.")
+        mediapool = project.GetMediaPool()
+        if getMethod == "Current":
+            folder = mediapool.GetCurrentFolder()
+        elif getMethod == "Root":
+            folder = mediapool.GetRootFolder()
+        elif getMethod == "FullPath":
+            if not folderPath:
+                raise ValueError("A folder path is required to use the FullPath get method.")
+            folderPath = folderPath.replace("\\", "/")
+            inputFolderPath = folderPath if folderPath.endswith("/") else folderPath + "/"
+            try:
+                folder = self._recursiveFolderResearch(
+                    mediapool.GetRootFolder(), "", inputFolderPath, mediapool, createFolders=createFolders)
+            except Exception as e:
+                raise RuntimeError("The folder couldn't be found using the FullPath get method. "
+                                   "Check that the Folder path is correct: \n {0}".format(str(e)))
+        else:
+            raise ValueError("Get Method '{0}' is not supported. Please choose between: "
+                             "'Current', 'Root', 'FullPath'.".format(getMethod))
+
+
+        self.getPlug("folder", SDirection.kOut).setValue(folder)
+        super(self.__class__, self).execute()
+
+
+class DVR_FolderSet(DVR_Base):
+    """Operator to set the current active folder in the media pool of the project.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_project = SPlug(
+            code="project",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+
+        self.addPlug(i_project)
+        self.addPlug(i_folder)
+
+    def execute(self, force=False):
+        """Sets the current active folder in the media pool of the project.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        folder = self.getPlug("folder", SDirection.kIn).value
+        project = self.getPlug("project", SDirection.kIn).value
+        if folder is None:
+            raise ValueError("A folder object is needed to create the subFolder inside.")
+        if project is None:
+            raise ValueError("A project object is needed to create the folder.")
+        msg = ""
+        try:
+            result = project.GetMediaPool().SetCurrentFolder(folder)
+        except Exception as e:
+            msg = str(e)
+            result = False
+        if not result:
+            raise RuntimeError("The folder couldn't be set as active: {0}".format(msg))
+
+        super(self.__class__, self).execute()
+
+
+class DVR_MetadataGet(DVR_Base):
+    """Operator to get the metadata of a given clip of the Media Pool.
+    Allows the creation of new plugs. It will pick output plug names like field of the metadata to be read from the given clip and will store the obtained value inside them. Custom input plugs will be ignored.
+
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_clip = SPlug(
+            code="clip",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+
+        self.addPlug(i_clip)
+
+    def execute(self, force=False):
+        """Gets the required metadata of the given clip using each custom output plugs like fields to read.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+
+        plugsList = [plug for plug in self.getPlugs(SDirection.kOut) if plug.type != SType.kTrigger]
+        clip = self.getPlug("clip").value
+        if clip is None:
+            raise ValueError("A clip object is needed to read the metadata from.")
+        if plugsList:
+            for p in plugsList:
+                try:
+                    fieldValue = clip.GetMetadata(p.code)
+                    if fieldValue:
+                        p.setValue(fieldValue)
+                except Exception as e:
+                    logger.warning("The metadata of type '{0}' could not be read.".format(p.code))
+
+        super(self.__class__, self).execute()
+
+
 class DVR_MetadataSet(DVR_Base):
     """Operator to edit the metadata of a given clip. You can create custom plugs to set different
     metadata field in the given clip. The name of each custom plug will be used like the metadata field name,
@@ -247,6 +634,45 @@ class DVR_ProjectGet(DVR_Base):
         self.checkDvr()
         project = projectManager.GetCurrentProject()
         self.getPlug("project", SDirection.kOut).setValue(project)
+        super(self.__class__, self).execute()
+
+
+class DVR_ProjectImport(DVR_Base):
+    """Operator to import a Davinci Resolve project from a file.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+
+        i_filepath = SPlug(
+            code="filepath",
+            value="",
+            type=SType.kFileIn,
+            direction=SDirection.kIn,
+            parent=self)
+
+        self.addPlug(i_filepath)
+
+    def execute(self, force=False):
+        """Imports a given project in Davinci Resolve.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        filepath = self.getPlug("filepath", SDirection.kIn).value
+        if not filepath or not filepath.endswith(".drp"):
+            raise ValueError("The filepath to the project have to be a .drp format.")
+        msg = ""
+        try:
+            result = projectManager.ImportProject(filepath)
+        except Exception as e:
+            msg = str(e)
+            result = False
+        if not result:
+            raise RuntimeError("The project couldn't be imported: {0}".format(msg))
         super(self.__class__, self).execute()
 
 
@@ -400,15 +826,120 @@ class DVR_TimelineGet(DVR_Base):
                 timeline = project.GetTimelineByIndex(timeIdx)
             except Exception as e:
                 raise RuntimeError("The timeline at index {0} could not be get.".format(timeIdx))
-
-
         elif getMethod == "Current":
             try:
                 timeline = project.GetCurrentTimeline()
             except Exception as e:
                 raise RuntimeError("The current timeline could not be get.")
         else:
-            raise ValueError("Get Method '{0}' is not supported".format(getMethod))
+            raise ValueError("Get Method '{0}' is not supported. Please choose between: "
+                             "'ByName', 'ByIndex', 'Current'.".format(getMethod))
+        self.getPlug("timeline", SDirection.kOut).setValue(timeline)
+        super(self.__class__, self).execute()
+
+
+class DVR_TimelineSet(DVR_Base):
+    """Operator to set a given timeline like current timeline in the project.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+        i_project = SPlug(
+            code="project",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_timeline = SPlug(
+            code="timeline",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+
+        self.addPlug(i_project)
+        self.addPlug(i_timeline)
+
+    def execute(self, force=False):
+        """Set the given timeline like current timeline in the project.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        project = self.getPlug("project", SDirection.kIn).value
+        timeline = self.getPlug("timeline", SDirection.kIn).value
+
+        if project is None:
+            raise ValueError("A project entity is required to set the timeline. Got {0}".format(project))
+
+        if timeline is None:
+            raise ValueError("A timeline entity is required to set the timeline. Got {0}".format(timeline))
+
+        msg = ""
+        try:
+            result = project.SetCurrentTimeline(timeline)
+        except Exception as e:
+            msg = str(e)
+            result = False
+        if not result:
+            raise RuntimeError("The current timeline could not be set: \n {0}".format(msg))
+
+        super(self.__class__, self).execute()
+
+
+class DVR_TimelineImport(DVR_Base):
+    """Operator to import a timeline file in the Project.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+        i_project = SPlug(
+            code="project",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_filepath = SPlug(
+            code="filepath",
+            value="",
+            type=SType.kFileIn,
+            direction=SDirection.kIn,
+            parent=self)
+        o_timeline = SPlug(
+            code="timeline",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_project)
+        self.addPlug(i_filepath)
+        self.addPlug(o_timeline)
+
+    def execute(self, force=False):
+        """Imports a given timeline file in the given DVR project.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        project = self.getPlug("project", SDirection.kIn).value
+        filepath = self.getPlug("filepath", SDirection.kIn).value
+        if not os.path.isfile(filepath):
+            raise ValueError("A valid filepath to a timeline file is required. Got {0}".format(filepath))
+        if project is None:
+            raise ValueError("A valid project instance is required to import the timeline. Got {0}".format(project))
+
+        # Export the timeline
+        try:
+            timeline = project.GetMediaPool().ImportTimelineFromFile(filepath)
+        except Exception as e:
+            raise RuntimeError("Timeline import process has failed: {0}".format(str(e)))
         self.getPlug("timeline", SDirection.kOut).setValue(timeline)
         super(self.__class__, self).execute()
 
@@ -610,7 +1141,8 @@ class DVR_TimelineItemsGet(DVR_Base):
             if not items:
                 logger.warning("Track name not found or the track is empty.")
         else:
-            raise ValueError("Get method '{0}' is not valid. Please choose between 'ByTrackIdx', 'ByTrackName' or 'All'.".format(getMethod))
+            raise ValueError("Get method '{0}' is not valid. Please choose between "
+                             "'ByTrackIdx', 'ByTrackName' or 'All'.".format(getMethod))
 
 
         self.getPlug("items", SDirection.kOut).setValue(items)
@@ -721,11 +1253,20 @@ catalog = {
     "Version": "1.0.0",
     "Author": "Shift R&D Team",
     "Operators": [
+        [DVR_ClipGet, []],
+        [DVR_ClipsGet, []],
+        [DVR_FolderAdd, []],
+        [DVR_FolderGet, []],
+        [DVR_FolderSet, []],
+        [DVR_MetadataGet, []],
         [DVR_MetadataSet, []],
         [DVR_ProjectExport, []],
         [DVR_ProjectGet, []],
+        [DVR_ProjectImport, []],
         [DVR_TimelineExport, []],
         [DVR_TimelineGet, []],
+        [DVR_TimelineSet, []],
+        [DVR_TimelineImport, []],
         [DVR_TimelineItemGet, []],
         [DVR_TimelineItemsGet, []],
         [DVR_TimelineNameGet, []],
