@@ -1,3 +1,4 @@
+import os
 from shift.core.workflow import SOperator
 from shift.core.workflow import SPlug
 from shift.core.constants import SType
