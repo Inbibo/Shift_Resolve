@@ -767,7 +767,7 @@ class DVR_TakeGet(DVR_Base):
         self.addPlug(o_index)
 
     def execute(self, force=False):
-        """Returns the current project from Davinci Resolve.
+        """Returns a clip and index from a specific take of the given item.
 
         @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
 
@@ -832,79 +832,39 @@ class DVR_TakeSet(DVR_Base):
             type=SType.kInstance,
             direction=SDirection.kIn,
             parent=self)
-        i_key = SPlug(
+        i_index = SPlug(
             code="index",
             value="",
-            type=SType.kString,
-            direction=SDirection.kIn,
-            parent=self)
-        o_clip = SPlug(
-            code="clip",
-            value=None,
-            type=SType.kInstance,
-            direction=SDirection.kOut,
-            parent=self)
-        o_index = SPlug(
-            code="index",
-            value=0,
             type=SType.kInt,
-            direction=SDirection.kOut,
+            direction=SDirection.kIn,
             parent=self)
 
         self.addPlug(i_item)
-        self.addPlug(i_getMethod)
-        self.addPlug(i_key)
-        self.addPlug(o_clip)
-        self.addPlug(o_index)
+        self.addPlug(i_index)
 
     def execute(self, force=False):
-        """Returns the current project from Davinci Resolve.
+        """Set a specific take in the given item.
 
         @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
 
         """
         self.checkDvr()
         item = self.getPlug("item", SDirection.kIn).value
-        getMethod = self.getPlug("getMethod", SDirection.kIn).value
-        takeKey = self.getPlug("key", SDirection.kIn).value
+        takeIndex = self.getPlug("index", SDirection.kIn).value
         # Check input values
         if item is None:
             raise ValueError("A Resolve Timeline item object is required to get the take.")
-
-        if getMethod == "ByName":
-            take = None
-            for idx in range(1, item.GetTakesCount() + 1):
-                takeAux = item.GetTakeByIndex(idx)
-                clipAux = takeAux.get("mediaPoolItem")
-                if not clipAux:
-                    logger.warning("The take with index {0} doesn't have a mediaPoolItem associated.".format(idx))
-                    continue
-                if clipAux.GetClipProperty("Clip Name") == takeKey:
-                    take = [idx, clipAux]
-                    break
-            if take is None:
-                raise ValueError("Take with a clip name '{0}' not found.".format(takeKey))
-        elif getMethod == "ByIndex":
-            # Index sanity checks
-            takeIdx = self.getDrvIdx(takeKey, "Take", item.GetTakesCount())
-            # Get the take for the given index
-            try:
-                takeClip = item.GetTakeByIndex(takeIdx).get("mediaPoolItem")
-            except Exception as e:
-                raise RuntimeError("The take at index {0} could not be get.".format(takeIdx))
-            take = [takeIdx, takeClip]
-        elif getMethod == "Current":
-            try:
-                takeIdx = item.GetSelectedTakeIndex()
-                takeClip = item.GetTakeByIndex(takeIdx).get("mediaPoolItem")
-            except Exception as e:
-                raise RuntimeError("The current take could not be get.")
-            take = [takeIdx, takeClip]
-        else:
-            raise ValueError("Get Method '{0}' is not supported. Please choose between: "
-                             "'ByName', 'ByIndex', 'Current'.".format(getMethod))
-        self.getPlug("clip", SDirection.kOut).setValue(take[1])
-        self.getPlug("index", SDirection.kOut).setValue(take[0])
+        takeMax = item.GetTakesCount()
+        if takeIndex < 1 or takeIndex > takeMax:
+            raise ValueError("Index out of range. The item have only {0} takes.".format(takeMax))
+        # Set the take for the given index
+        try:
+            result = item.GetSelectedTakeIndex(takeIndex)
+        except Exception as e:
+            logger.error(str(e))
+            result = False
+        if not result:
+            raise RuntimeError("The take with index {0} could not be set.".format(takeIndex))
         super(self.__class__, self).execute()
 
 
@@ -1534,6 +1494,9 @@ catalog = {
         [DVR_ProjectExport, []],
         [DVR_ProjectGet, []],
         [DVR_ProjectImport, []],
+        [DVR_TakeAdd, []],
+        [DVR_TakeGet, []],
+        [DVR_TakeSet, []],
         [DVR_TimelineExport, []],
         [DVR_TimelineGet, []],
         [DVR_TimelineSet, []],
