@@ -115,6 +115,48 @@ class DVR_Base(SOperator):
         return idx
 
 
+class DVR_ClipPropertyGet(DVR_Base):
+    """Operator to get properties from a clip.
+    Allows the creation of new plugs. It will pick output plug names like property names
+    to be read from the given clip and will store the obtained value inside them.
+    Custom input plugs will be ignored.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_clip = SPlug(
+            code="clip",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+
+        self.addPlug(i_clip)
+
+    def execute(self, force=False):
+        """Gets the desired properties from the given clip.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        plugsList = [plug for plug in self.getPlugs(SDirection.kOut) if plug.type != SType.kTrigger]
+        clip = self.getPlug("clip").value
+        if clip is None:
+            raise ValueError("A clip object is needed to read the properties from.")
+        if plugsList:
+            for p in plugsList:
+                try:
+                    fieldValue = clip.GetClipProperty(p.code)
+                    if fieldValue:
+                        p.setValue(fieldValue)
+                except Exception as e:
+                    raise ValueError("The property '{0}' could not be read: \n {1}".format(p.code, str(e)))
+        super(self.__class__, self).execute()
+
+
 class DVR_ClipGet(DVR_Base):
     """Operator to get a specific Clip from a list of Clips
     Works in Davinci Resolve.
@@ -1484,6 +1526,7 @@ catalog = {
     "Version": "1.0.0",
     "Author": "Shift R&D Team",
     "Operators": [
+        [DVR_ClipPropertyGet, []],
         [DVR_ClipGet, []],
         [DVR_ClipsGet, []],
         [DVR_FolderAdd, []],
