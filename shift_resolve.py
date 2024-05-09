@@ -859,7 +859,7 @@ class DVR_TakeSet(DVR_Base):
             raise ValueError("Index out of range. The item have only {0} takes.".format(takeMax))
         # Set the take for the given index
         try:
-            result = item.GetSelectedTakeIndex(takeIndex)
+            result = item.SelectTakeByIndex(takeIndex)
         except Exception as e:
             logger.error(str(e))
             result = False
