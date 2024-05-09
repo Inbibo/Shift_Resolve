@@ -960,7 +960,7 @@ class DVR_TimelineImport(DVR_Base):
         project = self.getPlug("project", SDirection.kIn).value
         filepath = self.getPlug("filepath", SDirection.kIn).value
         timelineName = self.getPlug("timelineName", SDirection.kIn).value
-        importSourceclips = self.getPlug("importSourceclips", SDirection.kIn).value
+        importSourceClips = self.getPlug("importSourceClips", SDirection.kIn).value
         sourceClipsPath = self.getPlug("sourceClipsPath", SDirection.kIn).value
         sourceClipsFolders = self.getPlug("sourceClipsFolders", SDirection.kIn).value
         if not os.path.isfile(filepath):
@@ -971,7 +971,7 @@ class DVR_TimelineImport(DVR_Base):
         # Build optional arguments when required
         importOptions = {}
         if not isDrt:  # DRT doesn't support this optional parameters
-            importOptions["importSourceclips"] = importSourceclips
+            importOptions["importSourceclips"] = importSourceClips
             if timelineName:
                 importOptions["timelineName"] = timelineName
             if sourceClipsPath:
@@ -986,7 +986,7 @@ class DVR_TimelineImport(DVR_Base):
                 timeline = project.GetMediaPool().ImportTimelineFromFile(filepath)
         except Exception as e:
             raise RuntimeError("Timeline import process has failed: {0}".format(str(e)))
-        
+
         if timelineName and isDrt:  # To Allow the rename for DRT files, rename the file after import
             try:
                 timeline.SetName(timelineName)
