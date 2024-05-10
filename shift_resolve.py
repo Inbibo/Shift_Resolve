@@ -740,20 +740,21 @@ class DVR_TakeAdd(DVR_Base):
             raise ValueError("A Resolve media pool item (clip) is required to add it like a take version.")
         if startFrame > endFrame:
             raise ValueError("The given frame range is not valid: {0}-{1}".format(startFrame, endFrame))
+        msg = "No error provided"
         if startFrame == endFrame:  # We use the equal condition like flag to ignore the frame range.
             try:
                 result = item.AddTake(clip)
             except Exception as e:
-                logger.error(str(e))
+                msg = str(e)
                 result = False
         else:
             try:
                 result = item.AddTake(clip, startFrame, endFrame)
             except Exception as e:
-                logger.error(str(e))
+                msg = str(e)
                 result = False
         if not result:
-            raise RuntimeError("The take could not be added. Check the log for more information.")
+            raise RuntimeError("The take could not be added: {0}".format(msg))
         super(self.__class__, self).execute()
 
 
@@ -860,7 +861,7 @@ class DVR_TakeGet(DVR_Base):
 
 
 class DVR_TakeSet(DVR_Base):
-    """Sets a given take index like the current take in the given item.
+    """Sets the take at the given index as the current take of the given item.
     Works in Davinci Resolve.
 
     """
@@ -880,9 +881,16 @@ class DVR_TakeSet(DVR_Base):
             type=SType.kInt,
             direction=SDirection.kIn,
             parent=self)
+        o_clip = SPlug(
+            code="clip",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
 
         self.addPlug(i_item)
         self.addPlug(i_index)
+        self.addPlug(o_clip)
 
     def execute(self, force=False):
         """Set a specific take in the given item.
@@ -900,13 +908,16 @@ class DVR_TakeSet(DVR_Base):
         if takeIndex < 1 or takeIndex > takeMax:
             raise ValueError("Index out of range. The item have only {0} takes.".format(takeMax))
         # Set the take for the given index
+        msg = "No error provided."
         try:
             result = item.SelectTakeByIndex(takeIndex)
         except Exception as e:
-            logger.error(str(e))
+            msg = str(e)
             result = False
         if not result:
-            raise RuntimeError("The take with index {0} could not be set.".format(takeIndex))
+            raise RuntimeError("The take with index {0} could not be set: {1}".format(takeIndex, msg))
+        clip = item.GetTakeByIndex().get("mediaPoolItem")
+        self.getPlug("clip", SDirection.kOut).setValue(clip)
         super(self.__class__, self).execute()
 
 
