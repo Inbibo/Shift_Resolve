@@ -892,7 +892,14 @@ class DVR_TimelineSet(DVR_Base):
 
 
 class DVR_TimelineImport(DVR_Base):
-    """Operator to import a timeline file in the Project.
+    """Operator to import a timeline file in the Project. The required parameters are the resolve project
+    and the filepath to the timeline file. But you can set optional parameters:
+    timelineName: Specifies the name of the timeline to be created.
+    importSourceClips: Specifies whether source clips should be imported, True by default. Not valid for DRT import
+    sourceClipsPath: Specifies a filesystem path to search for source clips if the media is inaccessible
+    in their original path and if importSourceClips is True.
+    sourceClipsFolders: List of Media Pool folder objects to search for source clips if the media is
+    not present in current folder and if "importSourceClips" is False. Not valid for DRT import.
     Works in Davinci Resolve.
 
     """
@@ -980,18 +987,19 @@ class DVR_TimelineImport(DVR_Base):
                 importOptions["sourceClipsFolders"] = sourceClipsFolders
         # Import the timeline
         try:
-            if importOptions:
-                timeline = project.GetMediaPool().ImportTimelineFromFile(filepath, importOptions)
-            else:
-                timeline = project.GetMediaPool().ImportTimelineFromFile(filepath)
+            timeline = project.GetMediaPool().ImportTimelineFromFile(filepath, importOptions)
         except Exception as e:
             raise RuntimeError("Timeline import process has failed: {0}".format(str(e)))
 
         if timelineName and isDrt:  # To allow renaming of DRT files, rename the file after import
+            msg = ""
             try:
-                timeline.SetName(timelineName)
+                result = timeline.SetName(timelineName)
             except Exception as e:
-                raise RuntimeError("The timeline could not be renamed after the import: \n{0}".format(str(e)))
+                msg = str(e)
+                result = False
+            if not result:
+                logger.warning("The timeline could not be renamed after the import: \n{0}".format(msg))
         self.getPlug("timeline", SDirection.kOut).setValue(timeline)
         super(self.__class__, self).execute()
 
