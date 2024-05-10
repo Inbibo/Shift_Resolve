@@ -916,7 +916,7 @@ class DVR_TakeSet(DVR_Base):
             result = False
         if not result:
             raise RuntimeError("The take with index {0} could not be set: {1}".format(takeIndex, msg))
-        clip = item.GetTakeByIndex().get("mediaPoolItem")
+        clip = item.GetTakeByIndex(takeIndex).get("mediaPoolItem")
         self.getPlug("clip", SDirection.kOut).setValue(clip)
         super(self.__class__, self).execute()
 
