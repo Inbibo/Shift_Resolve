@@ -987,7 +987,7 @@ class DVR_TimelineImport(DVR_Base):
         except Exception as e:
             raise RuntimeError("Timeline import process has failed: {0}".format(str(e)))
 
-        if timelineName and isDrt:  # To Allow the rename for DRT files, rename the file after import
+        if timelineName and isDrt:  # To allow renaming of DRT files, rename the file after import
             try:
                 timeline.SetName(timelineName)
             except Exception as e:
