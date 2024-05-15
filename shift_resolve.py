@@ -835,7 +835,8 @@ class DVR_TakeGet(DVR_Base):
                     take = [idx, clipAux]
                     break
             if take is None:
-                raise ValueError("Take with a clip name '{0}' not found.".format(takeKey))
+                take = [None, None]
+                logger.warning("Take with a clip name '{0}' not found.".format(takeKey))
         elif getMethod == "ByIndex":
             # Index sanity checks
             takeIdx = self.getDrvIdx(takeKey, "Take", item.GetTakesCount())
