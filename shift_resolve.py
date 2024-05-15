@@ -1175,7 +1175,14 @@ class DVR_TimelineSet(DVR_Base):
 
 
 class DVR_TimelineImport(DVR_Base):
-    """Operator to import a timeline file in the Project.
+    """Operator to import a timeline file in the Project. The required parameters are the resolve project
+    and the filepath to the timeline file. But you can set optional parameters:
+    timelineName: Specifies the name of the timeline to be created.
+    importSourceClips: Specifies whether source clips should be imported, True by default. Not valid for DRT import
+    sourceClipsPath: Specifies a filesystem path to search for source clips if the media is inaccessible
+    in their original path and if importSourceClips is True.
+    sourceClipsFolders: List of Media Pool folder objects to search for source clips if the media is
+    not present in current folder and if "importSourceClips" is False. Not valid for DRT import.
     Works in Davinci Resolve.
 
     """
@@ -1194,6 +1201,30 @@ class DVR_TimelineImport(DVR_Base):
             type=SType.kFileIn,
             direction=SDirection.kIn,
             parent=self)
+        i_timelineName = SPlug(
+            code="timelineName",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        i_importSourceClips = SPlug(
+            code="importSourceClips",
+            value=True,
+            type=SType.kBool,
+            direction=SDirection.kIn,
+            parent=self)
+        i_sourceClipsPath = SPlug(
+            code="sourceClipsPath",
+            value="",
+            type=SType.kDir,
+            direction=SDirection.kIn,
+            parent=self)
+        i_sourceClipsFolders = SPlug(
+            code="sourceClipsFolders",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
         o_timeline = SPlug(
             code="timeline",
             value=None,
@@ -1203,6 +1234,10 @@ class DVR_TimelineImport(DVR_Base):
 
         self.addPlug(i_project)
         self.addPlug(i_filepath)
+        self.addPlug(i_timelineName)
+        self.addPlug(i_importSourceClips)
+        self.addPlug(i_sourceClipsPath)
+        self.addPlug(i_sourceClipsFolders)
         self.addPlug(o_timeline)
 
     def execute(self, force=False):
@@ -1214,16 +1249,40 @@ class DVR_TimelineImport(DVR_Base):
         self.checkDvr()
         project = self.getPlug("project", SDirection.kIn).value
         filepath = self.getPlug("filepath", SDirection.kIn).value
+        timelineName = self.getPlug("timelineName", SDirection.kIn).value
+        importSourceClips = self.getPlug("importSourceClips", SDirection.kIn).value
+        sourceClipsPath = self.getPlug("sourceClipsPath", SDirection.kIn).value
+        sourceClipsFolders = self.getPlug("sourceClipsFolders", SDirection.kIn).value
         if not os.path.isfile(filepath):
             raise ValueError("A valid filepath to a timeline file is required. Got {0}".format(filepath))
+        isDrt = filepath.endswith(".drt")
         if project is None:
             raise ValueError("A valid project instance is required to import the timeline. Got {0}".format(project))
-
-        # Export the timeline
+        # Build optional arguments when required
+        importOptions = {}
+        if not isDrt:  # DRT doesn't support this optional parameters
+            importOptions["importSourceclips"] = importSourceClips
+            if timelineName:
+                importOptions["timelineName"] = timelineName
+            if sourceClipsPath:
+                importOptions["sourceClipsPath"] = sourceClipsPath
+            if sourceClipsFolders:
+                importOptions["sourceClipsFolders"] = sourceClipsFolders
+        # Import the timeline
         try:
-            timeline = project.GetMediaPool().ImportTimelineFromFile(filepath)
+            timeline = project.GetMediaPool().ImportTimelineFromFile(filepath, importOptions)
         except Exception as e:
             raise RuntimeError("Timeline import process has failed: {0}".format(str(e)))
+
+        if timelineName and isDrt:  # To allow renaming of DRT files, rename the file after import
+            msg = ""
+            try:
+                result = timeline.SetName(timelineName)
+            except Exception as e:
+                msg = str(e)
+                result = False
+            if not result:
+                logger.warning("The timeline could not be renamed after the import: \n{0}".format(msg))
         self.getPlug("timeline", SDirection.kOut).setValue(timeline)
         super(self.__class__, self).execute()
 
