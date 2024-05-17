@@ -801,18 +801,14 @@ class DVR_TakeAdd(DVR_Base):
         if startFrame > endFrame:
             raise ValueError("The given frame range is not valid: {0}-{1}".format(startFrame, endFrame))
         msg = "No error provided"
-        if startFrame == endFrame:  # We use the equal condition like flag to ignore the frame range.
-            try:
+        try:
+            if startFrame == endFrame:  # We use the equal condition like flag to ignore the frame range.
                 result = item.AddTake(clip)
-            except Exception as e:
-                msg = str(e)
-                result = False
-        else:
-            try:
+            else:
                 result = item.AddTake(clip, startFrame, endFrame)
-            except Exception as e:
-                msg = str(e)
-                result = False
+        except Exception as e:
+            result = False
+            msg = str(e)
         if not result:
             raise RuntimeError("The take could not be added: {0}".format(msg))
         super(self.__class__, self).execute()
