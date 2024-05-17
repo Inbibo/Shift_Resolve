@@ -114,6 +114,69 @@ class DVR_Base(SOperator):
             logger.warning("The resolve lists for {0} starts at index 1.".format(objTypeName))
         return idx
 
+    def getObjClass(self, objIn):
+        """Gets the class name of the given object.
+
+        @param objIn obj: An object that should be a Resolve BlackmagicFusion.PyRemoteObject.
+
+        return str: The name of the class.
+
+        """
+        objInClass = None
+        if objIn is None:
+            return objInClass
+        try:
+            objInClass = objIn.ClassName
+        except:
+            objInClass = None
+        if objInClass is None:
+            try:
+                objInClass = type(objIn).__name__
+            except:
+                objInClass = None
+        return objInClass
+
+    def checkIndividualClass(self, objIn, objExpected):
+        """Check the given object class individually, not list expected.
+
+        @param objIn obj: An object that should be a Resolve BlackmagicFusion.PyRemoteObject instance.
+        @param objExpected str: The name of the class object expected.
+
+        @return bool: True if the class is not the same.
+        @return str: The name of the class of the objIn.
+
+        """
+        raiseError = False
+        objClass = self.getObjClass(objIn)
+        if objExpected == "clip" and objClass != "Media pool item":
+            raiseError = True
+        elif objExpected == "item" and objClass != "Timeline item":
+            raiseError = True
+        elif objExpected == "timeline" and objClass != "Timeline":
+            raiseError = True
+        elif objExpected == "project" and objClass != "Project":
+            raiseError = True
+        return raiseError, objClass
+
+    def checkClass(self, objIn, objExpected, isList=False):
+        """Checks the given object class and raise and error if is not correct.
+
+        @param objIn obj: An object that should be a Resolve BlackmagicFusion.PyRemoteObject instance.
+        @param objExpected str: The name of the class object expected.
+        @param isList bool: True if the objIn is a list of objects. False if it's only 1 object. (Default=False)
+
+        """
+        if not isList:
+            raiseError, objClass = self.checkIndividualClass(objIn, objExpected)
+            if raiseError:
+                raise ValueError("The {0} input is not valid, got {1}".format(objExpected, objClass))
+        else:
+            for element in objIn:
+                raiseError, objClass = self.checkIndividualClass(element, objExpected)
+                if raiseError:
+                    raise ValueError("One element from the list is not "
+                                     "a {0}, is a {1}".format(objExpected, objClass))
+
 
 class DVR_ClipPropertyGet(DVR_Base):
     """Operator to get properties from a clip.
@@ -144,8 +207,7 @@ class DVR_ClipPropertyGet(DVR_Base):
         self.checkDvr()
         plugsList = [plug for plug in self.getPlugs(SDirection.kOut) if plug.type != SType.kTrigger]
         clip = self.getPlug("clip").value
-        if clip is None:
-            raise ValueError("A clip object is needed to read the properties from.")
+        self.checkClass(clip, "clip")
         if plugsList:
             for p in plugsList:
                 try:
@@ -734,10 +796,8 @@ class DVR_TakeAdd(DVR_Base):
         startFrame = self.getPlug("startFrame", SDirection.kIn).value
         endFrame = self.getPlug("endFrame", SDirection.kIn).value
         # Check input values
-        if item is None:
-            raise ValueError("A Resolve Timeline item object is required to add the take.")
-        if clip is None:
-            raise ValueError("A Resolve media pool item (clip) is required to add it like a take version.")
+        self.checkClass(item, "item")
+        self.checkClass(clip, "clip")
         if startFrame > endFrame:
             raise ValueError("The given frame range is not valid: {0}-{1}".format(startFrame, endFrame))
         msg = "No error provided"
@@ -820,8 +880,7 @@ class DVR_TakeGet(DVR_Base):
         getMethod = self.getPlug("getMethod", SDirection.kIn).value
         takeKey = self.getPlug("key", SDirection.kIn).value
         # Check input values
-        if item is None:
-            raise ValueError("A Resolve Timeline item object is required to get the take.")
+        self.checkClass(item, "item")
 
         if getMethod == "ByName":
             take = None
@@ -903,8 +962,7 @@ class DVR_TakeSet(DVR_Base):
         item = self.getPlug("item", SDirection.kIn).value
         takeIndex = self.getPlug("index", SDirection.kIn).value
         # Check input values
-        if item is None:
-            raise ValueError("A Resolve Timeline item object is required to get the take.")
+        self.checkClass(item, "item")
         takeMax = item.GetTakesCount()
         if takeIndex < 1 or takeIndex > takeMax:
             raise ValueError("Index out of range. The item have only {0} takes.".format(takeMax))
