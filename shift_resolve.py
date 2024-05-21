@@ -114,6 +114,110 @@ class DVR_Base(SOperator):
             logger.warning("The resolve lists for {0} starts at index 1.".format(objTypeName))
         return idx
 
+    def getObjClass(self, objIn):
+        """Gets the class name of the given object.
+
+        @param objIn obj: An object that should be a Resolve BlackmagicFusion.PyRemoteObject.
+
+        return str: The name of the class.
+
+        """
+        objInClass = None
+        if objIn is None:
+            return objInClass
+        try:
+            objInClass = objIn.ClassName
+        except:
+            objInClass = None
+        if objInClass is None:
+            try:
+                objInClass = type(objIn).__name__
+            except:
+                objInClass = None
+        return objInClass
+
+    def checkIndividualClass(self, objIn, objExpected):
+        """Check the given object class individually, not list expected.
+
+        @param objIn obj: An object that should be a Resolve BlackmagicFusion.PyRemoteObject instance.
+        @param objExpected str: The name of the class object expected.
+
+        @return bool: True if the class is not the same.
+        @return str: The name of the class of the objIn.
+
+        """
+        raiseError = False
+        objClass = self.getObjClass(objIn)
+        if objExpected == "clip" and objClass != "Media pool item":
+            raiseError = True
+        elif objExpected == "item" and objClass != "Timeline item":
+            raiseError = True
+        elif objExpected == "timeline" and objClass != "Timeline":
+            raiseError = True
+        elif objExpected == "project" and objClass != "Project":
+            raiseError = True
+        return raiseError, objClass
+
+    def checkClass(self, objIn, objExpected, isList=False):
+        """Checks the given object class and raise and error if is not correct.
+
+        @param objIn obj: An object that should be a Resolve BlackmagicFusion.PyRemoteObject instance.
+        @param objExpected str: The name of the class object expected.
+        @param isList bool: True if the objIn is a list of objects. False if it's only 1 object. (Default=False)
+
+        """
+        if not isList:
+            raiseError, objClass = self.checkIndividualClass(objIn, objExpected)
+            if raiseError:
+                raise ValueError("The {0} input is not valid, got {1}".format(objExpected, objClass))
+        else:
+            for element in objIn:
+                raiseError, objClass = self.checkIndividualClass(element, objExpected)
+                if raiseError:
+                    raise ValueError("One element from the list is not "
+                                     "a {0}, is a {1}".format(objExpected, objClass))
+
+
+class DVR_ClipPropertyGet(DVR_Base):
+    """Operator to get properties from a clip.
+    Allows the creation of new plugs. It will pick output plug names like property names
+    to be read from the given clip and will store the obtained value inside them.
+    Custom input plugs will be ignored.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_clip = SPlug(
+            code="clip",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+
+        self.addPlug(i_clip)
+
+    def execute(self, force=False):
+        """Gets the desired properties from the given clip.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        plugsList = [plug for plug in self.getPlugs(SDirection.kOut) if plug.type != SType.kTrigger]
+        clip = self.getPlug("clip").value
+        self.checkClass(clip, "clip")
+        if plugsList:
+            for p in plugsList:
+                try:
+                    fieldValue = clip.GetClipProperty(p.code)
+                    if fieldValue:
+                        p.setValue(fieldValue)
+                except Exception as e:
+                    raise ValueError("The property '{0}' could not be read: \n {1}".format(p.code, str(e)))
+        super(self.__class__, self).execute()
+
 
 class DVR_ClipGet(DVR_Base):
     """Operator to get a specific Clip from a list of Clips
@@ -635,6 +739,240 @@ class DVR_ProjectGet(DVR_Base):
         self.checkDvr()
         project = projectManager.GetCurrentProject()
         self.getPlug("project", SDirection.kOut).setValue(project)
+        super(self.__class__, self).execute()
+
+
+class DVR_TakeAdd(DVR_Base):
+    """Operator to add a given clip like a take to a timeline item.
+    The clip input will be added to the take selector of the item input.
+    If you don't specify any start and end frame, or the frame are the same,
+    the frame range will be ignored and the take will be added with the full range.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+
+        i_item = SPlug(
+            code="item",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_clip = SPlug(
+            code="clip",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_startFrame = SPlug(
+            code="startFrame",
+            value=0,
+            type=SType.kInt,
+            direction=SDirection.kIn,
+            parent=self)
+        i_endFrame = SPlug(
+            code="endFrame",
+            value=0,
+            type=SType.kInt,
+            direction=SDirection.kIn,
+            parent=self)
+
+        self.addPlug(i_item)
+        self.addPlug(i_clip)
+        self.addPlug(i_startFrame)
+        self.addPlug(i_endFrame)
+
+    def execute(self, force=False):
+        """Adds a given clip to a given item like a take.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        item = self.getPlug("item", SDirection.kIn).value
+        clip = self.getPlug("clip", SDirection.kIn).value
+        startFrame = self.getPlug("startFrame", SDirection.kIn).value
+        endFrame = self.getPlug("endFrame", SDirection.kIn).value
+        # Check input values
+        self.checkClass(item, "item")
+        self.checkClass(clip, "clip")
+        if startFrame > endFrame:
+            raise ValueError("The given frame range is not valid: {0}-{1}".format(startFrame, endFrame))
+        msg = "No error provided"
+        try:
+            if startFrame == endFrame:  # We use the equal condition like flag to ignore the frame range.
+                result = item.AddTake(clip)
+            else:
+                result = item.AddTake(clip, startFrame, endFrame)
+        except Exception as e:
+            result = False
+            msg = str(e)
+        if not result:
+            raise RuntimeError("The take could not be added: {0}".format(msg))
+        super(self.__class__, self).execute()
+
+
+class DVR_TakeGet(DVR_Base):
+    """Returns the clip and the index of a specific take in the given timeline item.
+    You can select the getMethod of your choice to input a clip name, an index or return the current selection.
+    If you select the ByIndex method you have to specify an integer from 1 to the number of
+    takes in the item in the key plug.
+    If you select the ByName method you have to specify a clip name in the key plug.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+
+        i_item = SPlug(
+            code="item",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_getMethod = SPlug(
+            code="getMethod",
+            value="ByName",
+            type=SType.kEnum,
+            options=["ByName", "ByIndex", "Current"],
+            direction=SDirection.kIn,
+            parent=self)
+        i_key = SPlug(
+            code="key",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        o_clip = SPlug(
+            code="clip",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+        o_index = SPlug(
+            code="index",
+            value=0,
+            type=SType.kInt,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_item)
+        self.addPlug(i_getMethod)
+        self.addPlug(i_key)
+        self.addPlug(o_clip)
+        self.addPlug(o_index)
+
+    def execute(self, force=False):
+        """Returns a clip and index from a specific take of the given item.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        item = self.getPlug("item", SDirection.kIn).value
+        getMethod = self.getPlug("getMethod", SDirection.kIn).value
+        takeKey = self.getPlug("key", SDirection.kIn).value
+        # Check input values
+        self.checkClass(item, "item")
+
+        if getMethod == "ByName":
+            take = None
+            for idx in range(1, item.GetTakesCount() + 1):
+                takeAux = item.GetTakeByIndex(idx)
+                clipAux = takeAux.get("mediaPoolItem")
+                if not clipAux:
+                    logger.warning("The take with index {0} doesn't have a mediaPoolItem associated.".format(idx))
+                    continue
+                if clipAux.GetClipProperty("Clip Name") == takeKey:
+                    take = [idx, clipAux]
+                    break
+            if take is None:
+                take = [-1, None]
+                logger.debug("Take with a clip name '{0}' not found.".format(takeKey))
+        elif getMethod == "ByIndex":
+            # Index sanity checks
+            takeIdx = self.getDrvIdx(takeKey, "Take", item.GetTakesCount())
+            # Get the take for the given index
+            try:
+                takeClip = item.GetTakeByIndex(takeIdx).get("mediaPoolItem")
+            except Exception as e:
+                raise RuntimeError("The take at index {0} could not be get.".format(takeIdx))
+            take = [takeIdx, takeClip]
+        elif getMethod == "Current":
+            try:
+                takeIdx = item.GetSelectedTakeIndex()
+                takeClip = item.GetTakeByIndex(takeIdx).get("mediaPoolItem")
+            except Exception as e:
+                raise RuntimeError("The current take could not be get.")
+            take = [takeIdx, takeClip]
+        else:
+            raise ValueError("Get Method '{0}' is not supported. Please choose between: "
+                             "'ByName', 'ByIndex', 'Current'.".format(getMethod))
+        self.getPlug("clip", SDirection.kOut).setValue(take[1])
+        self.getPlug("index", SDirection.kOut).setValue(take[0])
+        super(self.__class__, self).execute()
+
+
+class DVR_TakeSet(DVR_Base):
+    """Sets the take at the given index as the current take of the given item.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+
+        i_item = SPlug(
+            code="item",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_index = SPlug(
+            code="index",
+            value="",
+            type=SType.kInt,
+            direction=SDirection.kIn,
+            parent=self)
+        o_clip = SPlug(
+            code="clip",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_item)
+        self.addPlug(i_index)
+        self.addPlug(o_clip)
+
+    def execute(self, force=False):
+        """Set a specific take in the given item.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        item = self.getPlug("item", SDirection.kIn).value
+        takeIndex = self.getPlug("index", SDirection.kIn).value
+        # Check input values
+        self.checkClass(item, "item")
+        takeMax = item.GetTakesCount()
+        if takeIndex < 1 or takeIndex > takeMax:
+            raise ValueError("Index out of range. The item have only {0} takes.".format(takeMax))
+        # Set the take for the given index
+        msg = "No error provided."
+        try:
+            result = item.SelectTakeByIndex(takeIndex)
+        except Exception as e:
+            msg = str(e)
+            result = False
+        if not result:
+            raise RuntimeError("The take with index {0} could not be set: {1}".format(takeIndex, msg))
+        clip = item.GetTakeByIndex(takeIndex).get("mediaPoolItem")
+        self.getPlug("clip", SDirection.kOut).setValue(clip)
         super(self.__class__, self).execute()
 
 
@@ -1313,6 +1651,7 @@ catalog = {
     "Version": "1.0.0",
     "Author": "Shift R&D Team",
     "Operators": [
+        [DVR_ClipPropertyGet, []],
         [DVR_ClipGet, []],
         [DVR_ClipsGet, []],
         [DVR_FolderAdd, []],
@@ -1323,6 +1662,9 @@ catalog = {
         [DVR_ProjectExport, []],
         [DVR_ProjectGet, []],
         [DVR_ProjectImport, []],
+        [DVR_TakeAdd, []],
+        [DVR_TakeGet, []],
+        [DVR_TakeSet, []],
         [DVR_TimelineExport, []],
         [DVR_TimelineGet, []],
         [DVR_TimelineSet, []],
