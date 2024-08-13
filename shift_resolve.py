@@ -173,6 +173,9 @@ class DVR_Base(SOperator):
             if raiseError:
                 raise ValueError("The {0} input is not valid, got {1}".format(objExpected, objClass))
         else:
+            if not isinstance(objIn, list):
+                raise ValueError("The input have to be a list of {0} instances, "
+                                 "not {1}.".format(objExpected, self.getObjClass(objIn)))
             for element in objIn:
                 raiseError, objClass = self.checkIndividualClass(element, objExpected)
                 if raiseError:
@@ -1305,7 +1308,8 @@ class DVR_TimelineImport(DVR_Base):
             raise ValueError("A valid filepath to a timeline file is required. Got {0}".format(filepath))
         isDrt = filepath.endswith(".drt")
         self.checkClass(project, "project")
-        self.checkClass(sourceClipsFolders, "folder", isList=True)
+        if sourceClipsFolders:
+            self.checkClass(sourceClipsFolders, "folder", isList=True)
         # Build optional arguments when required
         importOptions = {}
         if not isDrt:  # DRT doesn't support this optional parameters
