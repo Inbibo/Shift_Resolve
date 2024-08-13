@@ -514,6 +514,76 @@ class DVR_FolderGet(DVR_Base):
         super(self.__class__, self).execute()
 
 
+class DVR_FolderList(DVR_Base):
+    """Operator to get a list of folders from a given folder.
+    It can return only the folders directly under the input folder or make a recursive research to return all
+    subfolders from the given folder activating the recursiveSearch.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        i_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        i_recursiveSearch = SPlug(
+            code="recursiveSearch",
+            value=False,
+            type=SType.kBool,
+            direction=SDirection.kIn,
+            parent=self)
+        o_folders = SPlug(
+            code="folders",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_folder)
+        self.addPlug(i_recursiveSearch)
+        self.addPlug(o_folders)
+
+    def getFoldersRecursive(self, folder, folders):
+        """Recursive function that returns the full list of sub folders for a specific folder.
+
+        @param folder Resolve.Folder: The folder to get all the sub folders from.
+        @param folders list: The list of sub folders already found.
+
+        @return list: The list of sub folders updated.
+
+        """
+        sub_folders = folder.GetSubFolderList()
+        for sub_folder in sub_folders:
+            folders.append(sub_folder)
+            folders = self.getFoldersRecursive(sub_folder, folders)
+        return folders
+
+    def execute(self, force=False):
+        """Gets the list of sub folders from the given folder.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        folder = self.getPlug("folder").value
+        recursiveSearch = self.getPlug("recursiveSearch").value
+
+        # Check inputs
+        self.checkClass(folder, "folder")
+
+        if recursiveSearch:
+            folders = self.getFoldersRecursive(folder, [])
+        else:
+            folders = folder.GetSubFolderList()
+
+        self.getPlug("folders", SDirection.kOut).setValue(folders)
+        super(self.__class__, self).execute()
+
+
 class DVR_FolderSet(DVR_Base):
     """Operator to set the current active folder in the media pool of the project.
     Works in Davinci Resolve.
@@ -1656,6 +1726,7 @@ catalog = {
         [DVR_ClipsGet, []],
         [DVR_FolderAdd, []],
         [DVR_FolderGet, []],
+        [DVR_FolderList, []],
         [DVR_FolderSet, []],
         [DVR_MetadataGet, []],
         [DVR_MetadataSet, []],
