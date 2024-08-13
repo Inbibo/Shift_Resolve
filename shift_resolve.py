@@ -156,6 +156,8 @@ class DVR_Base(SOperator):
             raiseError = True
         elif objExpected == "project" and objClass != "Project":
             raiseError = True
+        elif objExpected == "folder" and objClass != "Folder":
+            raiseError = True
         return raiseError, objClass
 
     def checkClass(self, objIn, objExpected, isList=False):
@@ -269,8 +271,8 @@ class DVR_ClipGet(DVR_Base):
         getMethod = self.getPlug("getMethod", SDirection.kIn).value
         clipKey = self.getPlug("key", SDirection.kIn).value
         targetClip = None
-        if clips is None:
-            raise ValueError("A clip list is required to get an specific clip.")
+        # Check list instances
+        self.checkClass(clips, "clip", isList=True)
         if getMethod == "ByName":
             for clip in clips:
                 if clip.GetClipProperty("Clip Name") == clipKey:
@@ -317,9 +319,7 @@ class DVR_ClipsGet(DVR_Base):
         """
         self.checkDvr()
         folder = self.getPlug("folder", SDirection.kIn).value
-        if folder is None:
-            raise ValueError("A folder object is needed to retrieve the clips.")
-
+        self.checkClass(folder, "folder")
         try:
             clips = folder.GetClipList()
         except Exception as e:
@@ -378,10 +378,8 @@ class DVR_FolderAdd(DVR_Base):
         currentFolder = self.getPlug("folder", SDirection.kIn).value
         folderName = self.getPlug("name", SDirection.kIn).value
         project = self.getPlug("project", SDirection.kIn).value
-        if currentFolder is None:
-            raise ValueError("A folder object is needed to create the subFolder inside.")
-        if project is None:
-            raise ValueError("A project object is needed to create the folder.")
+        self.checkClass(currentFolder, "folder")
+        self.checkClass(project, "project")
         try:
             folder = project.GetMediaPool().AddSubFolder(currentFolder, folderName)
         except Exception as e:
@@ -487,8 +485,7 @@ class DVR_FolderGet(DVR_Base):
         getMethod = self.getPlug("getMethod").value
         folderPath = self.getPlug("folderPath").value
         createFolders = self.getPlug("createFolders").value
-        if project is None:
-            raise ValueError("A project object is needed to get the folder from.")
+        self.checkClass(project, "project")
         mediapool = project.GetMediaPool()
         if getMethod == "Current":
             folder = mediapool.GetCurrentFolder()
@@ -547,10 +544,9 @@ class DVR_FolderSet(DVR_Base):
         self.checkDvr()
         folder = self.getPlug("folder", SDirection.kIn).value
         project = self.getPlug("project", SDirection.kIn).value
-        if folder is None:
-            raise ValueError("A folder object is needed to create the subFolder inside.")
-        if project is None:
-            raise ValueError("A project object is needed to create the folder.")
+
+        self.checkClass(folder, "folder")
+        self.checkClass(project, "project")
         msg = ""
         try:
             result = project.GetMediaPool().SetCurrentFolder(folder)
@@ -592,8 +588,8 @@ class DVR_MetadataGet(DVR_Base):
 
         plugsList = [plug for plug in self.getPlugs(SDirection.kOut) if plug.type != SType.kTrigger]
         clip = self.getPlug("clip").value
-        if clip is None:
-            raise ValueError("A clip object is needed to read the metadata from.")
+        self.checkClass(clip, "clip")
+
         if plugsList:
             for p in plugsList:
                 try:
@@ -635,6 +631,7 @@ class DVR_MetadataSet(DVR_Base):
 
         plugsList = self.getPlugs(SDirection.kIn)
         clip = self.getPlug("clip").value
+        self.checkClass(clip, "clip")
         msg = ""
         errorPlugs = []
         if len(plugsList) > 2:
@@ -696,8 +693,7 @@ class DVR_ProjectExport(DVR_Base):
         self.checkDvr()
         project = self.getPlug("project", SDirection.kIn).value
         filepath = self.getPlug("filepath", SDirection.kIn).value
-        if not project:
-            raise ValueError("A Davinci Resolve project is required to export.")
+        self.checkClass(project, "project")
         if not filepath or not filepath.endswith(".drp"):
             raise ValueError("A filepath for a .drp file is required to export the project.")
         msg = ""
@@ -1067,8 +1063,7 @@ class DVR_TimelineExport(DVR_Base):
         filepath = self.getPlug("filepath", SDirection.kIn).value
         timelineFormat = self.getPlug("format", SDirection.kIn).value
         # Check the input values
-        if timeline is None:
-            raise ValueError("A Timeline object is required to execute the export")
+        self.checkClass(timeline, "timeline")
         timelineType = self.timelineTypes.get(timelineFormat)
         if timelineType is None:
             raise ValueError("The timeline format '{0}' it's not recognized.".format(timelineFormat))
@@ -1147,6 +1142,7 @@ class DVR_TimelineGet(DVR_Base):
         project = self.getPlug("project", SDirection.kIn).value
         getMethod = self.getPlug("getMethod", SDirection.kIn).value
         timeKey = self.getPlug("key", SDirection.kIn).value
+        self.checkClass(project, "project")
 
         if getMethod == "ByName":
             timeline = None
@@ -1211,11 +1207,8 @@ class DVR_TimelineSet(DVR_Base):
         project = self.getPlug("project", SDirection.kIn).value
         timeline = self.getPlug("timeline", SDirection.kIn).value
 
-        if project is None:
-            raise ValueError("A project entity is required to set the timeline. Got {0}".format(project))
-
-        if timeline is None:
-            raise ValueError("A timeline entity is required to set the timeline. Got {0}".format(timeline))
+        self.checkClass(project, "project")
+        self.checkClass(timeline, "timeline")
 
         msg = ""
         try:
@@ -1311,8 +1304,8 @@ class DVR_TimelineImport(DVR_Base):
         if not os.path.isfile(filepath):
             raise ValueError("A valid filepath to a timeline file is required. Got {0}".format(filepath))
         isDrt = filepath.endswith(".drt")
-        if project is None:
-            raise ValueError("A valid project instance is required to import the timeline. Got {0}".format(project))
+        self.checkClass(project, "project")
+        self.checkClass(sourceClipsFolders, "folder", isList=True)
         # Build optional arguments when required
         importOptions = {}
         if not isDrt:  # DRT doesn't support this optional parameters
@@ -1405,8 +1398,7 @@ class DVR_TimelineItemGet(DVR_Base):
         inName = self.getPlug("name", SDirection.kIn).value
 
         # Check the input values
-        if not items:
-            raise ValueError("No items provided. A list of timeline items is required to get one item.")
+        self.checkClass(items, "item", isList=True)
         resultItem = None
         for item in items:
             if nameSource == "TimelineItem":
@@ -1518,8 +1510,7 @@ class DVR_TimelineItemsGet(DVR_Base):
         getMethod = self.getPlug("getMethod", SDirection.kIn).value
         trackKey = self.getPlug("key", SDirection.kIn).value
         # Check the input values
-        if timeline is None:
-            raise ValueError("A Timeline object is required to get the items.")
+        self.checkClass(timeline, "timeline")
         # Get the items with the selected method
         if getMethod == "All":
             items = []
@@ -1582,8 +1573,7 @@ class DVR_TimelineNameGet(DVR_Base):
         timeline = self.getPlug("timeline", SDirection.kIn).value
 
         # Check the input values
-        if timeline is None:
-            raise ValueError("A Timeline object is required to get the name from.")
+        self.checkClass(timeline, "timeline")
 
         # Export the timeline
         try:
@@ -1628,8 +1618,7 @@ class DVR_TimelineNameSet(DVR_Base):
         timeline = self.getPlug("timeline", SDirection.kIn).value
         name = self.getPlug("name", SDirection.kIn).value
         # Check the input values
-        if timeline is None:
-            raise ValueError("A Timeline object is required to set the name.")
+        self.checkClass(timeline, "timeline")
 
         # Export the timeline
         msg = ""
