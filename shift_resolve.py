@@ -517,7 +517,8 @@ class DVR_FolderGet(DVR_Base):
 class DVR_FolderList(DVR_Base):
     """Operator to get a list of folders from a given folder.
     It can return only the folders directly under the input folder or make a recursive research to return all
-    subfolders from the given folder activating the recursiveSearch.
+    subfolders from the given folder activating the recursiveSearch flag.
+
     Works in Davinci Resolve.
 
     """
