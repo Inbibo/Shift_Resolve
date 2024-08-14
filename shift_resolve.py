@@ -743,7 +743,7 @@ class DVR_ProjectGet(DVR_Base):
 
 
 class DVR_ProjectOpen(DVR_Base):
-    """Operator to open a project with him name.
+    """Operator to open a project with the provided name.
     Works in Davinci Resolve.
 
     """
@@ -768,7 +768,7 @@ class DVR_ProjectOpen(DVR_Base):
         self.addPlug(o_project)
 
     def execute(self, force=False):
-        """Returns the current project from Davinci Resolve.
+        """Tries to load a project with the given name in Davinci Resolve. If the loading fails, it raises an error.
 
         @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
 
@@ -777,8 +777,8 @@ class DVR_ProjectOpen(DVR_Base):
         projectName = self.getPlug("projectName", SDirection.kIn).value
         project = projectManager.LoadProject(projectName)
         if not project:
-            raise RuntimeError("The project could not been open. Check that aproject named {0} exists in "
-                               "the current project folder from Resolve.".format(projectName))
+            raise RuntimeError("The project could not be opened. Please, check if a project "
+                               "named {0} exists in the current project folder in Resolve.".format(projectName))
         self.getPlug("project", SDirection.kOut).setValue(project)
         super(self.__class__, self).execute()
 
