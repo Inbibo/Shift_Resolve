@@ -515,7 +515,7 @@ class DVR_FolderGet(DVR_Base):
 
 
 class DVR_FolderList(DVR_Base):
-    """Operator to get a list of folders from a given folder.
+    """Operator to get the list of folders within the given folder.
     It can return only the folders directly under the input folder or make a recursive research to return all
     subfolders from the given folder activating the recursiveSearch flag.
 
@@ -557,10 +557,10 @@ class DVR_FolderList(DVR_Base):
         @return list: The list of sub folders updated.
 
         """
-        sub_folders = folder.GetSubFolderList()
-        for sub_folder in sub_folders:
-            folders.append(sub_folder)
-            folders = self.getFoldersRecursive(sub_folder, folders)
+        subFolders = folder.GetSubFolderList()
+        for subFolder in subFolders:
+            folders.append(subFolder)
+            folders = self.getFoldersRecursive(subFolder, folders)
         return folders
 
     def execute(self, force=False):
