@@ -514,6 +514,44 @@ class DVR_FolderGet(DVR_Base):
         super(self.__class__, self).execute()
 
 
+class DVR_FolderNameGet(DVR_Base):
+    """Operator to get the name of a given folder.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+        i_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        o_name = SPlug(
+            code="name",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_folder)
+        self.addPlug(o_name)
+
+    def execute(self, force=False):
+        """Gets the name of the given folder object.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        folder = self.getPlug("folder").value
+        self.checkClass(folder, "folder")
+        folderName = folder.GetName()
+        self.getPlug("name", SDirection.kOut).setValue(folderName)
+        super(self.__class__, self).execute()
+
+
 class DVR_FolderSet(DVR_Base):
     """Operator to set the current active folder in the media pool of the project.
     Works in Davinci Resolve.
@@ -1656,6 +1694,7 @@ catalog = {
         [DVR_ClipsGet, []],
         [DVR_FolderAdd, []],
         [DVR_FolderGet, []],
+        [DVR_FolderNameGet, []],
         [DVR_FolderSet, []],
         [DVR_MetadataGet, []],
         [DVR_MetadataSet, []],
