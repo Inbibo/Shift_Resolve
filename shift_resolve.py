@@ -226,7 +226,7 @@ class DVR_ClipGet(DVR_Base):
     """
 
     def __init__(self, code, parent):
-        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        super(self.__class__, self).__init__(code, parent=parent)
         i_clips = SPlug(
             code="clips",
             value=None,
@@ -292,7 +292,7 @@ class DVR_ClipsGet(DVR_Base):
     """
 
     def __init__(self, code, parent):
-        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        super(self.__class__, self).__init__(code, parent=parent)
         i_folder = SPlug(
             code="folder",
             value=None,
@@ -337,7 +337,7 @@ class DVR_FolderAdd(DVR_Base):
     """
 
     def __init__(self, code, parent):
-        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        super(self.__class__, self).__init__(code, parent=parent)
         i_project = SPlug(
             code="project",
             value=None,
@@ -400,7 +400,7 @@ class DVR_FolderGet(DVR_Base):
     """
 
     def __init__(self, code, parent):
-        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        super(self.__class__, self).__init__(code, parent=parent)
         i_project = SPlug(
             code="project",
             value=None,
@@ -521,7 +521,7 @@ class DVR_FolderSet(DVR_Base):
     """
 
     def __init__(self, code, parent):
-        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        super(self.__class__, self).__init__(code, parent=parent)
         i_project = SPlug(
             code="project",
             value=None,
