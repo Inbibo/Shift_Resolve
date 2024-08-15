@@ -524,7 +524,7 @@ class DVR_FolderList(DVR_Base):
     """
 
     def __init__(self, code, parent):
-        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        super(self.__class__, self).__init__(code, parent=parent)
         i_folder = SPlug(
             code="folder",
             value=None,
