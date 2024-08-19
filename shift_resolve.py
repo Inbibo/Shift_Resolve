@@ -549,12 +549,12 @@ class DVR_FolderList(DVR_Base):
         self.addPlug(o_folders)
 
     def getFoldersRecursive(self, folder, folders):
-        """Recursive function that returns the full list of sub folders for a specific folder.
+        """Recursive function that returns the full list of subfolders for a specific folder.
 
-        @param folder Resolve.Folder: The folder to get all the sub folders from.
-        @param folders list: The list of sub folders already found.
+        @param folder Resolve.Folder: The folder to get all the subfolders from.
+        @param folders list: The list of subfolders already found.
 
-        @return list: The list of sub folders updated.
+        @return list: The list of subfolders updated.
 
         """
         subFolders = folder.GetSubFolderList()
