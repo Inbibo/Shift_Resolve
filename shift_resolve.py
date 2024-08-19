@@ -564,7 +564,7 @@ class DVR_FolderList(DVR_Base):
         return folders
 
     def execute(self, force=False):
-        """Gets the list of sub folders from the given folder.
+        """Gets the list of subfolders from the given folder.
 
         @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
 
