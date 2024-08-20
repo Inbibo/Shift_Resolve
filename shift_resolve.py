@@ -286,7 +286,6 @@ class DVR_ClipGet(DVR_Base):
 
 class DVR_ClipsGet(DVR_Base):
     """Operator to get all the clips from a Resolve folder.
-
     Works in Davinci Resolve.
 
     """
@@ -331,7 +330,6 @@ class DVR_ClipsGet(DVR_Base):
 
 class DVR_FolderAdd(DVR_Base):
     """Operator to create a folder inside other folder with the given name in Resolve.
-
     Works in Davinci Resolve.
 
     """
@@ -604,7 +602,6 @@ class DVR_FolderSet(DVR_Base):
 class DVR_MetadataGet(DVR_Base):
     """Operator to get the metadata of a given clip of the Media Pool.
     Allows the creation of new plugs. It will pick output plug names like field of the metadata to be read from the given clip and will store the obtained value inside them. Custom input plugs will be ignored.
-
     Works in Davinci Resolve.
 
     """
