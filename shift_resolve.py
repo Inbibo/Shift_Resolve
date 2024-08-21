@@ -174,7 +174,7 @@ class DVR_Base(SOperator):
                 raise ValueError("The {0} input is not valid, got {1}".format(objExpected, objClass))
         else:
             if not isinstance(objIn, list):
-                raise ValueError("The input have to be a list of {0} instances, "
+                raise ValueError("The input has to be a list of {0} instances, "
                                  "not {1}.".format(objExpected, self.getObjClass(objIn)))
             for element in objIn:
                 raiseError, objClass = self.checkIndividualClass(element, objExpected)
