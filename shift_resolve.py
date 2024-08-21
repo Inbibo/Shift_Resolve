@@ -226,7 +226,7 @@ class DVR_ClipGet(DVR_Base):
     """
 
     def __init__(self, code, parent):
-        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        super(self.__class__, self).__init__(code, parent=parent)
         i_clips = SPlug(
             code="clips",
             value=None,
@@ -286,13 +286,12 @@ class DVR_ClipGet(DVR_Base):
 
 class DVR_ClipsGet(DVR_Base):
     """Operator to get all the clips from a Resolve folder.
-
     Works in Davinci Resolve.
 
     """
 
     def __init__(self, code, parent):
-        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        super(self.__class__, self).__init__(code, parent=parent)
         i_folder = SPlug(
             code="folder",
             value=None,
@@ -331,13 +330,12 @@ class DVR_ClipsGet(DVR_Base):
 
 class DVR_FolderAdd(DVR_Base):
     """Operator to create a folder inside other folder with the given name in Resolve.
-
     Works in Davinci Resolve.
 
     """
 
     def __init__(self, code, parent):
-        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        super(self.__class__, self).__init__(code, parent=parent)
         i_project = SPlug(
             code="project",
             value=None,
@@ -400,7 +398,7 @@ class DVR_FolderGet(DVR_Base):
     """
 
     def __init__(self, code, parent):
-        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        super(self.__class__, self).__init__(code, parent=parent)
         i_project = SPlug(
             code="project",
             value=None,
@@ -518,9 +516,7 @@ class DVR_FolderList(DVR_Base):
     """Operator to get the list of folders within the given folder.
     It can return only the folders directly under the input folder or make a recursive research to return all
     subfolders from the given folder activating the recursiveSearch flag.
-
     Works in Davinci Resolve.
-
     """
 
     def __init__(self, code, parent):
@@ -550,12 +546,9 @@ class DVR_FolderList(DVR_Base):
 
     def getFoldersRecursive(self, folder, folders):
         """Recursive function that returns the full list of subfolders for a specific folder.
-
         @param folder Resolve.Folder: The folder to get all the subfolders from.
         @param folders list: The list of subfolders already found.
-
         @return list: The list of subfolders updated.
-
         """
         subFolders = folder.GetSubFolderList()
         for subFolder in subFolders:
@@ -565,9 +558,7 @@ class DVR_FolderList(DVR_Base):
 
     def execute(self, force=False):
         """Gets the list of subfolders from the given folder.
-
         @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
-
         """
         self.checkDvr()
         folder = self.getPlug("folder").value
@@ -585,6 +576,44 @@ class DVR_FolderList(DVR_Base):
         super(self.__class__, self).execute()
 
 
+class DVR_FolderNameGet(DVR_Base):
+    """Operator to get the name of a given folder.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+        i_folder = SPlug(
+            code="folder",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kIn,
+            parent=self)
+        o_name = SPlug(
+            code="name",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_folder)
+        self.addPlug(o_name)
+
+    def execute(self, force=False):
+        """Gets the name of the given folder object.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        folder = self.getPlug("folder").value
+        self.checkClass(folder, "folder")
+        folderName = folder.GetName()
+        self.getPlug("name", SDirection.kOut).setValue(folderName)
+        super(self.__class__, self).execute()
+
+
 class DVR_FolderSet(DVR_Base):
     """Operator to set the current active folder in the media pool of the project.
     Works in Davinci Resolve.
@@ -592,7 +621,7 @@ class DVR_FolderSet(DVR_Base):
     """
 
     def __init__(self, code, parent):
-        super(self.__class__, self).__init__(code, editable=True, parent=parent)
+        super(self.__class__, self).__init__(code, parent=parent)
         i_project = SPlug(
             code="project",
             value=None,
@@ -637,7 +666,6 @@ class DVR_FolderSet(DVR_Base):
 class DVR_MetadataGet(DVR_Base):
     """Operator to get the metadata of a given clip of the Media Pool.
     Allows the creation of new plugs. It will pick output plug names like field of the metadata to be read from the given clip and will store the obtained value inside them. Custom input plugs will be ignored.
-
     Works in Davinci Resolve.
 
     """
@@ -809,6 +837,47 @@ class DVR_ProjectGet(DVR_Base):
         """
         self.checkDvr()
         project = projectManager.GetCurrentProject()
+        self.getPlug("project", SDirection.kOut).setValue(project)
+        super(self.__class__, self).execute()
+
+
+class DVR_ProjectOpen(DVR_Base):
+    """Operator to open a project with the provided name.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+
+        i_projectName = SPlug(
+            code="projectName",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        o_project = SPlug(
+            code="project",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_projectName)
+        self.addPlug(o_project)
+
+    def execute(self, force=False):
+        """Tries to load a project with the given name in Davinci Resolve. If the loading fails, it raises an error.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        projectName = self.getPlug("projectName", SDirection.kIn).value
+        project = projectManager.LoadProject(projectName)
+        if not project:
+            raise RuntimeError("The project could not be opened. Please, check if a project "
+                               "named {0} exists in the current project folder in Resolve.".format(projectName))
         self.getPlug("project", SDirection.kOut).setValue(project)
         super(self.__class__, self).execute()
 
@@ -1728,12 +1797,14 @@ catalog = {
         [DVR_FolderAdd, []],
         [DVR_FolderGet, []],
         [DVR_FolderList, []],
+        [DVR_FolderNameGet, []],
         [DVR_FolderSet, []],
         [DVR_MetadataGet, []],
         [DVR_MetadataSet, []],
         [DVR_ProjectExport, []],
         [DVR_ProjectGet, []],
         [DVR_ProjectImport, []],
+        [DVR_ProjectOpen, []],
         [DVR_TakeAdd, []],
         [DVR_TakeGet, []],
         [DVR_TakeSet, []],
