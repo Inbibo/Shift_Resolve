@@ -742,6 +742,47 @@ class DVR_ProjectGet(DVR_Base):
         super(self.__class__, self).execute()
 
 
+class DVR_ProjectOpen(DVR_Base):
+    """Operator to open a project with the provided name.
+    Works in Davinci Resolve.
+
+    """
+
+    def __init__(self, code, parent):
+        super(self.__class__, self).__init__(code, parent=parent)
+
+        i_projectName = SPlug(
+            code="projectName",
+            value="",
+            type=SType.kString,
+            direction=SDirection.kIn,
+            parent=self)
+        o_project = SPlug(
+            code="project",
+            value=None,
+            type=SType.kInstance,
+            direction=SDirection.kOut,
+            parent=self)
+
+        self.addPlug(i_projectName)
+        self.addPlug(o_project)
+
+    def execute(self, force=False):
+        """Tries to load a project with the given name in Davinci Resolve. If the loading fails, it raises an error.
+
+        @param force Bool: Sets the flag for forcing the execution even on clean nodes. (Default = False)
+
+        """
+        self.checkDvr()
+        projectName = self.getPlug("projectName", SDirection.kIn).value
+        project = projectManager.LoadProject(projectName)
+        if not project:
+            raise RuntimeError("The project could not be opened. Please, check if a project "
+                               "named {0} exists in the current project folder in Resolve.".format(projectName))
+        self.getPlug("project", SDirection.kOut).setValue(project)
+        super(self.__class__, self).execute()
+
+
 class DVR_TakeAdd(DVR_Base):
     """Operator to add a given clip like a take to a timeline item.
     The clip input will be added to the take selector of the item input.
@@ -1662,6 +1703,7 @@ catalog = {
         [DVR_ProjectExport, []],
         [DVR_ProjectGet, []],
         [DVR_ProjectImport, []],
+        [DVR_ProjectOpen, []],
         [DVR_TakeAdd, []],
         [DVR_TakeGet, []],
         [DVR_TakeSet, []],
