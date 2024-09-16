@@ -9,16 +9,16 @@ This catalog includes multiple Shift operators to manage your Resolve project; t
 
 To add this catalog to Shift, open the Catalog Manager by navigating to `File > Catalog Manager` in the Shift top menu and click on the "Add Catalog" button in the right top corner. This will open a file browser, allowing you to select the *shift_resolve.py* file. After adding the catalog, ensure that you apply the changes in the Catalog Manager to make them effective in Shift.
 
-The catalog can be added through the environment too. To do that, add the path to the directory where the shift_resolve.py file is stored to the environment variable `SHIFT_CATALOG_PATH` from your environment before start Shift.
+The catalog can also be added through the environment. To do that, add the path to the directory where the *shift_resolve.py* file is stored to the environment variable `SHIFT_CATALOG_PATH` from your environment before starting Shift.
 
-Take in consideration that the catalog can be added and used to create workflows in any instance of Shift. However, to be able to execute the operators from the catalog, Shift has to be open inside Davinci Resolve and with the Resolve Python API available. To set up the Python Interpreter and the Python API requirements from Danvici Resolve it is recommended to check the official documentation from your Davinci Resolve version. You can also find a detailed explanation of how to setup Shift in Davinci Resolve in the [Resolve Shift Documentation](https://inbibo.co.uk/docs/shift/integration_resources/software/resolve).
+Take in consideration that the catalog can be added and used to create workflows in any instance of Shift. However, to be able to execute the operators from the catalog, Shift has to be open inside Davinci Resolve and with the Resolve Python API available. To set up the Python Interpreter and the Python API requirements from Danvici Resolve it is recommended to check the official documentation from your Davinci Resolve version. You can also find a detailed explanation of how to set up Shift in Davinci Resolve in the [Resolve Shift Documentation](https://inbibo.co.uk/docs/shift/integration_resources/software/resolve).
 
 ## Dependencies
 
-| **Dependency**                                                              | **Version** |
-|-----------------------------------------------------------------------------|-------------|
-| [Shift](https://inbibo.co.uk/shift)                      | \>= 1.0.0   |
-| [Davinci Resolve](https://www.blackmagicdesign.com/products/davinciresolve) | 18.6        |
+| **Dependency**                     | **Version** |
+|------------------------------------|-------------|
+| [Shift](https://inbibo.co.uk/shift)                       | \>= 1.0.0   |
+| [Davinci Resolve](https://www.blackmagicdesign.com/products/davinciresolve)             | 18.6        |
 
 ## Documentation
 
