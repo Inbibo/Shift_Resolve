@@ -11,7 +11,7 @@ To add this catalog to Shift, you can open the Catalog Manager `File > Catalog M
 
 The catalog can be added through the environment too. To do that, add the path to the directory where the shift_resolve.py file is stored to the environment variable `SHIFT_CATALOG_PATH` from your environment before start Shift.
 
-Take in consideration that the catalog can be added and used to create workflows in any instance of Shift. However, to be able to execute the operators from the catalog, Shift have to be open inside Davinci Resolve and with the Resolve Python API available. To set up the Python Interpreter and the Python API requirements from Danvici Resolve is recommended to check the official documentation from your Davinci Resolve version. You can also find a detailed explanation of how to setup Shift in Davinci Resolve in the [Resolve Shift Documentation](https://inbibo.co.uk/docs/shift/integration_resources/software/resolve).
+Take in consideration that the catalog can be added and used to create workflows in any instance of Shift. However, to be able to execute the operators from the catalog, Shift has to be open inside Davinci Resolve and with the Resolve Python API available. To set up the Python Interpreter and the Python API requirements from Danvici Resolve it is recommended to check the official documentation from your Davinci Resolve version. You can also find a detailed explanation of how to setup Shift in Davinci Resolve in the [Resolve Shift Documentation](https://inbibo.co.uk/docs/shift/integration_resources/software/resolve).
 
 ## Dependencies
 
