@@ -2,7 +2,7 @@
 
 ## Description
 
-Shift catalog of Operators for Davinci Resolve.
+Shift catalog of operators for Davinci Resolve.
 This catalog includes multiple Shift operators to manage your Resolve project; the media pool elements like folders, videos and images; the timelines and the timeline items; the takes; and much more.
 
 ## Installation
