@@ -50,6 +50,6 @@ Take in consideration that the catalog can be added and used to create workflows
 - **DVR_TimelineSet**: Operator to set a given timeline like current timeline in the project.
 - **DVR_TimelineImport**: Operator to import a timeline file in the Project.
 - **DVR_TimelineItemGet**: Operator to get a timeline item object from a given list of items.
-- **DVR_TimelineItemsGet**: Operator to get a list of timelineItems from a given timeline.
+- **DVR_TimelineItemsGet**: Operator to get a list of timeline items from a given timeline.
 - **DVR_TimelineNameGet**: Operator to get the name of a timeline.
 - **DVR_TimelineNameSet**: Operator to set the name of a timeline.
