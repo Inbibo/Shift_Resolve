@@ -7,7 +7,7 @@ This catalog includes multiple Shift operators to manage your Resolve project; t
 
 ## Installation
 
-To add this catalog to Shift, you can open the Catalog Manager `File > Catalog Manager` and add the catalog like and user Catalog. Just click on the `Add Catalog` button and select the shift_resolve.py file.
+To add this catalog to Shift, open the Catalog Manager by navigating to `File > Catalog Manager` in the Shift top menu and click on the "Add Catalog" button in the right top corner. This will open a file browser, allowing you to select the *shift_resolve.py* file. After adding the catalog, ensure that you apply the changes in the Catalog Manager to make them effective in Shift.
 
 The catalog can be added through the environment too. To do that, add the path to the directory where the shift_resolve.py file is stored to the environment variable `SHIFT_CATALOG_PATH` from your environment before start Shift.
 
