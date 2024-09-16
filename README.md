@@ -36,7 +36,7 @@ Take in consideration that the catalog can be added and used to create workflows
 - **DVR_FolderList**: Operator to get the list of folders within the given folder.
 - **DVR_FolderNameGet**: Operator to get the name of a given folder.
 - **DVR_FolderSet**: Operator to set the current active folder in the media pool of the project.
-- **DVR_MetadataGet**: Operator to get the metadata of a given clip of the Media Pool.
+- **DVR_MetadataGet**: Operator to get the metadata of a given clip of the media pool.
 - **DVR_MetadataSet**: Operator to edit the metadata of a given clip. 
 - **DVR_ProjectExport**: Operator to export a given Resolve project in a Davinci Resolve Project file (.drp).
 - **DVR_ProjectGet**: Operator to get the current Resolve project object.
