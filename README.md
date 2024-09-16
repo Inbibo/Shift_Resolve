@@ -47,7 +47,7 @@ Take in consideration that the catalog can be added and used to create workflows
 - **DVR_TakeSet**: Operator to set the take at the given index as the current take of the item.
 - **DVR_TimelineExport**: Operator to export a Davinci Resolve timeline object.
 - **DVR_TimelineGet**: Operator to get a Davinci Resolve timeline object.
-- **DVR_TimelineSet**: Operator to set a given timeline like current timeline in the project.
+- **DVR_TimelineSet**: Operator to set a given timeline like the current timeline in the project.
 - **DVR_TimelineImport**: Operator to import a timeline file in the Project.
 - **DVR_TimelineItemGet**: Operator to get a timeline item object from a given list of items.
 - **DVR_TimelineItemsGet**: Operator to get a list of timeline items from a given timeline.
