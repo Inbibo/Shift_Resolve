@@ -29,7 +29,7 @@ Take in consideration that the catalog can be added and used to create workflows
 ## Operators
 
 - **DVR_ClipPropertyGet**: Operator to get properties from a clip.
-- **DVR_ClipGet**: Operator to get a specific Clip from a list of Clips.
+- **DVR_ClipGet**: Operator to get a specific clip from a list of clips.
 - **DVR_ClipsGet**: Operator to get all the clips from a Resolve folder.
 - **DVR_FolderAdd**: Operator to create a folder inside other folder with the given name in Resolve.
 - **DVR_FolderGet**: Operator to get a folder from the media pool of the project.
